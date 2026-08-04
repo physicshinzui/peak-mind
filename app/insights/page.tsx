@@ -226,6 +226,12 @@ export default function InsightsPage() {
       </div>
 
       <SectionCard title="スコアの推移">
+        <details className="text-sm text-gray-500 mb-3">
+          <summary className="cursor-pointer hover:text-gray-700">計算方法</summary>
+          <p className="mt-2 pl-4 text-xs leading-relaxed">
+            各日の全チェックインのスコアを算術平均し、その日の代表値として折れ線グラフにプロットしています。
+          </p>
+        </details>
         {!hasData ? (
           <p className="text-sm text-gray-500">データが不足しています。</p>
         ) : (
@@ -257,6 +263,12 @@ export default function InsightsPage() {
       </SectionCard>
 
       <SectionCard title="睡眠時間の推移" className="mt-4">
+        <details className="text-sm text-gray-500 mb-3">
+          <summary className="cursor-pointer hover:text-gray-700">計算方法</summary>
+          <p className="mt-2 pl-4 text-xs leading-relaxed">
+            起床時刻から就寝時刻を引いて睡眠時間を計算し、日ごとに棒グラフで表示しています。
+          </p>
+        </details>
         {recentSleep.length < 2 ? (
           <p className="text-sm text-gray-500">睡眠データが2件以上必要です。</p>
         ) : (
@@ -275,6 +287,12 @@ export default function InsightsPage() {
       </SectionCard>
 
       <SectionCard title="ひとこと分析" className="mt-4">
+        <details className="text-sm text-gray-500 mb-3">
+          <summary className="cursor-pointer hover:text-gray-700">計算方法</summary>
+          <p className="mt-2 pl-4 text-xs leading-relaxed">
+            睡眠時間・睡眠の質と各スコアの間にピアソンの相関係数を計算し、絶対値が0.3を超える場合に「傾向がある」とみなしています。
+          </p>
+        </details>
         <ul className="space-y-2">
           {insights.map((text, i) => (
             <li key={i} className="text-sm text-gray-700">
@@ -315,75 +333,8 @@ export default function InsightsPage() {
         events={events}
       />
 
-      <HelpSection />
-
       <Navigation />
     </main>
-  );
-}
-
-function HelpSection() {
-  return (
-    <SectionCard title="計算方法" className="mt-4">
-      <p className="text-sm text-gray-600 mb-3">
-        このページで表示している数値の出し方の補足です。
-      </p>
-      <details className="text-sm text-gray-700 mb-2">
-        <summary className="cursor-pointer hover:text-gray-900 font-medium">平均スコア</summary>
-        <p className="mt-2 text-xs text-gray-600 leading-relaxed">
-          各日の全チェックインのスコアを算術平均しています。例えば、朝と昼と夕方にチェックインした場合、その日の頭の冴えは3回の平均値になります。
-        </p>
-        <p className="mt-1 text-xs text-gray-500">
-          平均 = （各チェックインのスコアの合計） ÷ （その日のチェックイン回数）
-        </p>
-      </details>
-      <details className="text-sm text-gray-700 mb-2">
-        <summary className="cursor-pointer hover:text-gray-900 font-medium">条件付き平均：睡眠時間</summary>
-        <p className="mt-2 text-xs text-gray-600 leading-relaxed">
-          各日の睡眠時間を計算し、選択した閾値未満と以上の日に分類します。各グループに含まれる日の全チェックインを対象に、各スコアの平均を求めています。
-        </p>
-        <p className="mt-1 text-xs text-gray-500">睡眠時間 = 起床時刻 − 就寝時刻</p>
-        <p className="mt-1 text-xs text-gray-500">
-          閾値未満の日の平均 = 睡眠時間が閾値未満の日の全チェックインのスコアの平均
-        </p>
-        <p className="mt-1 text-xs text-gray-500">
-          閾値以上の日の平均 = 睡眠時間が閾値以上の日の全チェックインのスコアの平均
-        </p>
-      </details>
-      <details className="text-sm text-gray-700 mb-2">
-        <summary className="cursor-pointer hover:text-gray-900 font-medium">条件付き平均：運動・カフェイン</summary>
-        <p className="mt-2 text-xs text-gray-600 leading-relaxed">
-          イベント（運動またはカフェイン）がある日とない日に分類し、各グループに含まれる日の全チェックインを対象に、各スコアの平均を求めています。
-        </p>
-        <p className="mt-1 text-xs text-gray-500">
-          イベントありの日の平均 = イベントが記録された日の全チェックインのスコアの平均
-        </p>
-        <p className="mt-1 text-xs text-gray-500">
-          イベントなしの日の平均 = イベントが記録されていない日の全チェックインのスコアの平均
-        </p>
-      </details>
-      <details className="text-sm text-gray-700 mb-2">
-        <summary className="cursor-pointer hover:text-gray-900 font-medium">相関係数</summary>
-        <p className="mt-2 text-xs text-gray-600 leading-relaxed">
-          2つの変数が連動しているかをピアソンの相関係数 r で計算しています。絶対値が0.3を超える場合に「傾向がある」とみなしています。
-        </p>
-        <p className="mt-1 text-xs text-gray-500">
-          r = （xとyの共分散） ÷ （xの標準偏差 × yの標準偏差）
-        </p>
-        <p className="mt-1 text-xs text-gray-500">
-          x: 睡眠時間などの説明変数、y: Clarityなどの目的変数
-        </p>
-      </details>
-      <details className="text-sm text-gray-700">
-        <summary className="cursor-pointer hover:text-gray-900 font-medium">ヒント</summary>
-        <p className="mt-2 text-xs text-gray-600 leading-relaxed">
-          過去7日間のデータを対象に、睡眠時間・カフェイン・食事・運動・不調・不安の状態から、現在の状況に応じたアドバイスを生成しています。
-        </p>
-        <p className="mt-1 text-xs text-gray-600 leading-relaxed">
-          例えば、運動した日のClarity平均が運動しなかった日より0.3以上高い場合に「運動を勧める」ヒントを出します。
-        </p>
-      </details>
-    </SectionCard>
   );
 }
 
@@ -445,6 +396,12 @@ function ConditionalAverageSection({
       <p className="text-sm text-gray-600 mb-3">
         睡眠時間が{threshold}時間未満の日と、{threshold}時間以上の日を比較します。
       </p>
+      <details className="text-sm text-gray-500 mb-3">
+        <summary className="cursor-pointer hover:text-gray-700">計算方法</summary>
+        <p className="mt-2 pl-4 text-xs leading-relaxed">
+          各日の睡眠時間を計算し、{threshold}時間未満と以上の日に分類します。各グループに含まれる日の全チェックインを対象に、頭の冴えなど各スコアの平均を求めています。
+        </p>
+      </details>
       <div className="flex flex-wrap gap-2 mb-4">
         {SLEEP_THRESHOLDS.map((t) => (
           <button
@@ -565,6 +522,12 @@ function EventConditionalSection({
 
   return (
     <SectionCard title={title} className="mt-4">
+      <details className="text-sm text-gray-500 mb-3">
+        <summary className="cursor-pointer hover:text-gray-700">計算方法</summary>
+        <p className="mt-2 pl-4 text-xs leading-relaxed">
+          {yesLabel}のイベントがある日とない日に分類し、各グループに含まれる日の全チェックインを対象に、頭の冴えなど各スコアの平均を求めています。
+        </p>
+      </details>
       {yes.count === 0 ? (
         <p className="text-sm text-gray-500">
           {eventType === "exercise" ? "運動" : "カフェイン"}のイベントがありません。記録タブから追加してください。
@@ -749,6 +712,12 @@ function CombinationAnalysisSection({
       <p className="text-sm text-gray-600 mb-3">
         複数の条件を組み合わせて、Clarityなどのスコアを比較できます。
       </p>
+      <details className="text-sm text-gray-500 mb-3">
+        <summary className="cursor-pointer hover:text-gray-700">計算方法</summary>
+        <p className="mt-2 pl-4 text-xs leading-relaxed">
+          設定した条件をすべて満たす日と満たさない日に分類し、各グループに含まれる日の全チェックインを対象に、各スコアの平均を求めています。
+        </p>
+      </details>
       <div className="space-y-3">
         {conditions.map((cond, i) => (
           <div key={i} className="bg-gray-50 rounded-xl p-3 space-y-2">
