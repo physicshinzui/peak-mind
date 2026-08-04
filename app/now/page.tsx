@@ -7,9 +7,10 @@ import { SectionCard } from "../components/SectionCard";
 import { ScoreInput } from "../components/ScoreInput";
 import { CheckIn, CheckInType, Scores, Experiment } from "../types";
 import { db, generateId } from "../lib/db";
-import { format } from "date-fns";
+import { generateHints, Hint } from "../lib/hints";
+import { format, subDays } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Sun, Coffee, Briefcase, Moon, FlaskConical } from "lucide-react";
+import { Sun, Coffee, Briefcase, Moon, FlaskConical, Lightbulb } from "lucide-react";
 
 const CHECK_IN_TYPES: { type: CheckInType; label: string; icon: typeof Sun }[] = [
   { type: "morning", label: "朝", icon: Sun },
@@ -36,6 +37,7 @@ export default function NowPage() {
   const [runningExperiment, setRunningExperiment] = useState<Experiment | null>(null);
   const [todayLog, setTodayLog] = useState<{ done: boolean } | null>(null);
   const [lastCheckIn, setLastCheckIn] = useState<CheckIn | null>(null);
+  const [hints, setHints] = useState<Hint[]>([]);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -59,6 +61,29 @@ export default function NowPage() {
       .reverse()
       .first();
     setLastCheckIn(last || null);
+
+    const todayStart = `${today}T00:00:00.000Z`;
+    const todayEnd = `${today}T23:59:59.999Z`;
+    const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd");
+
+    const [todayCheckIns, todayEvents, yesterdaySleepRecord, recentCheckIns, recentEvents, recentSleepRecords] = await Promise.all([
+      db.checkIns.where("timestamp").between(todayStart, todayEnd).toArray(),
+      db.events.where("timestamp").between(todayStart, todayEnd).toArray(),
+      db.sleepRecords.where("date").equals(yesterday).first(),
+      db.checkIns.where("timestamp").above(format(subDays(new Date(), 30), "yyyy-MM-dd")).toArray(),
+      db.events.where("timestamp").above(format(subDays(new Date(), 30), "yyyy-MM-dd")).toArray(),
+      db.sleepRecords.where("date").above(format(subDays(new Date(), 30), "yyyy-MM-dd")).toArray(),
+    ]);
+
+    const hintList = generateHints({
+      todayCheckIns,
+      yesterdaySleep: yesterdaySleepRecord || null,
+      todayEvents,
+      recentCheckIns,
+      recentEvents,
+      recentSleep: recentSleepRecords,
+    });
+    setHints(hintList);
   };
 
   useEffect(() => {
@@ -137,6 +162,22 @@ export default function NowPage() {
           </div>
         </div>
       </SectionCard>
+
+      {hints.length > 0 && (
+        <SectionCard title="今日のヒント" className="mb-4">
+          <div className="space-y-3">
+            {hints.map((hint, i) => (
+              <div key={i} className="flex items-start gap-3 bg-amber-50 rounded-xl p-4">
+                <Lightbulb className="text-amber-600 mt-0.5 shrink-0" size={20} />
+                <div>
+                  <p className="font-semibold text-gray-800">{hint.title}</p>
+                  <p className="text-sm text-gray-600 mt-1">{hint.message}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
 
       {runningExperiment && (
         <SectionCard title="進行中の実験" className="mb-4">
