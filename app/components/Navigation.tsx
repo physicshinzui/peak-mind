@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, Clock, FlaskConical, BarChart3, Settings } from "lucide-react";
+import { Sparkles, Clock, FlaskConical, BarChart3, Settings, HelpCircle } from "lucide-react";
 
 const navItems = [
   { href: "/now", label: "今", icon: Sparkles },
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/experiments", label: "実験", icon: FlaskConical },
   { href: "/insights", label: "分析", icon: BarChart3 },
   { href: "/settings", label: "設定", icon: Settings },
+  { href: "/help", label: "？", icon: HelpCircle },
 ];
 
 export function Navigation() {

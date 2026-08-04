@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigation } from "../components/Navigation";
 import { SectionCard } from "../components/SectionCard";
 import { db } from "../lib/db";
-import { Download, Upload, Trash2, HelpCircle } from "lucide-react";
-import Link from "next/link";
+import { Download, Upload, Trash2 } from "lucide-react";
 
 export default function SettingsPage() {
   const [counts, setCounts] = useState({ checkIns: 0, events: 0, sleep: 0, experiments: 0 });
@@ -120,21 +119,6 @@ export default function SettingsPage() {
           バックアップを保存
         </button>
       </SectionCard>
-
-      <Link href="/help" className="block">
-        <SectionCard className="mt-4 hover:bg-gray-50 transition">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <HelpCircle className="text-blue-600" size={20} />
-              <div>
-                <p className="font-semibold text-gray-800">分析方法について</p>
-                <p className="text-sm text-gray-600">数値の出し方を確認する</p>
-              </div>
-            </div>
-            <span className="text-gray-400">→</span>
-          </div>
-        </SectionCard>
-      </Link>
 
       <SectionCard title="インポート" className="mt-4">
         <p className="text-sm text-gray-600 mb-4">
