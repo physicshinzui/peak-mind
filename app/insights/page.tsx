@@ -51,10 +51,13 @@ function correlation(x: number[], y: number[]): number {
   return num / Math.sqrt(dx2 * dy2);
 }
 
+const SLEEP_THRESHOLDS = [6, 6.5, 7, 7.5, 8, 8.5, 9];
+
 export default function InsightsPage() {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [sleepRecords, setSleepRecords] = useState<SleepRecord[]>([]);
   const [range, setRange] = useState<7 | 14 | 30 | 90 | 180 | 365>(7);
+  const [sleepThreshold, setSleepThreshold] = useState(7);
 
   useEffect(() => {
     const load = async () => {
@@ -275,7 +278,141 @@ export default function InsightsPage() {
         </ul>
       </SectionCard>
 
+      <ConditionalAverageSection
+        checkIns={checkIns}
+        sleepRecords={sleepRecords}
+        threshold={sleepThreshold}
+        onThresholdChange={setSleepThreshold}
+      />
+
       <Navigation />
     </main>
+  );
+}
+
+interface ConditionalAverageSectionProps {
+  checkIns: CheckIn[];
+  sleepRecords: SleepRecord[];
+  threshold: number;
+  onThresholdChange: (value: number) => void;
+}
+
+function ConditionalAverageSection({
+  checkIns,
+  sleepRecords,
+  threshold,
+  onThresholdChange,
+}: ConditionalAverageSectionProps) {
+  const scoreKeys = useMemo(() => Object.keys(SCORE_LABELS) as (keyof typeof SCORE_LABELS)[], []);
+
+  const { below, above } = useMemo(() => {
+    const belowDays = new Set<string>();
+    const aboveDays = new Set<string>();
+
+    sleepRecords.forEach((s) => {
+      const hours = calcSleepHours(s.bedTime, s.wakeTime);
+      if (hours < threshold) {
+        belowDays.add(s.date);
+      } else {
+        aboveDays.add(s.date);
+      }
+    });
+
+    const belowCheckIns = checkIns.filter((c) =>
+      belowDays.has(format(parseISO(c.timestamp), "yyyy-MM-dd"))
+    );
+    const aboveCheckIns = checkIns.filter((c) =>
+      aboveDays.has(format(parseISO(c.timestamp), "yyyy-MM-dd"))
+    );
+
+    return {
+      below: {
+        count: belowDays.size,
+        clarity: average(belowCheckIns.map((c) => c.scores.clarity)),
+        scores: Object.fromEntries(
+          scoreKeys.map((key) => [key, average(belowCheckIns.map((c) => c.scores[key]))])
+        ),
+      },
+      above: {
+        count: aboveDays.size,
+        clarity: average(aboveCheckIns.map((c) => c.scores.clarity)),
+        scores: Object.fromEntries(
+          scoreKeys.map((key) => [key, average(aboveCheckIns.map((c) => c.scores[key]))])
+        ),
+      },
+    };
+  }, [checkIns, sleepRecords, threshold, scoreKeys]);
+
+  return (
+    <SectionCard title="条件付き平均：睡眠時間" className="mt-4">
+      <p className="text-sm text-gray-600 mb-3">
+        睡眠時間が{threshold}時間未満の日と、{threshold}時間以上の日を比較します。
+      </p>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {SLEEP_THRESHOLDS.map((t) => (
+          <button
+            key={t}
+            onClick={() => onThresholdChange(t)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+              threshold === t
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-700 border border-gray-200"
+            }`}
+          >
+            {t}h
+          </button>
+        ))}
+      </div>
+
+      {below.count === 0 && above.count === 0 ? (
+        <p className="text-sm text-gray-500">睡眠データがありません。</p>
+      ) : (
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2 text-sm font-medium text-gray-500 text-center">
+            <span></span>
+            <span>{threshold}時間未満<br />({below.count}日)</span>
+            <span>{threshold}時間以上<br />({above.count}日)</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 items-center text-sm text-center py-2 border-b border-gray-100">
+            <span className="text-left font-medium text-gray-700">頭の冴え</span>
+            <span className="font-semibold text-gray-800">{below.clarity.toFixed(2)}</span>
+            <span className="font-semibold text-gray-800">{above.clarity.toFixed(2)}</span>
+          </div>
+
+          {scoreKeys
+            .filter((key) => key !== "clarity")
+            .map((key) => {
+              const b = below.scores[key];
+              const a = above.scores[key];
+              return (
+                <div
+                  key={key}
+                  className="grid grid-cols-3 gap-2 items-center text-sm text-center py-2 border-b border-gray-100 last:border-0"
+                >
+                  <span className="text-left font-medium text-gray-700">
+                    {SCORE_LABELS[key]}
+                  </span>
+                  <span className="font-semibold text-gray-800">{b.toFixed(2)}</span>
+                  <span className="font-semibold text-gray-800">{a.toFixed(2)}</span>
+                </div>
+              );
+            })}
+
+          {below.clarity > 0 && above.clarity > 0 && (
+            <div className="bg-blue-50 rounded-xl p-4 mt-3">
+              <p className="text-sm text-gray-700">
+                {threshold}時間以上の睡眠の日は、頭の冴えが
+                <span className="font-bold text-blue-700">
+                  {" "}
+                  {(above.clarity - below.clarity).toFixed(2)} {" "}
+                </span>
+                高くなっています。
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </SectionCard>
   );
 }
