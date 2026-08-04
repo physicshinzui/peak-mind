@@ -372,6 +372,12 @@ function ConditionalAverageSection({
       <p className="text-sm text-gray-600 mb-3">
         睡眠時間が{threshold}時間未満の日と、{threshold}時間以上の日を比較します。
       </p>
+      <details className="text-sm text-gray-500 mb-3">
+        <summary className="cursor-pointer hover:text-gray-700">計算方法</summary>
+        <p className="mt-2 pl-4 text-xs leading-relaxed">
+          各日の睡眠時間を計算し、{threshold}時間未満と以上の日に分類します。各グループに含まれる日の全チェックインを対象に、頭の冴えなど各スコアの平均を求めています。
+        </p>
+      </details>
       <div className="flex flex-wrap gap-2 mb-4">
         {SLEEP_THRESHOLDS.map((t) => (
           <button
@@ -492,6 +498,12 @@ function EventConditionalSection({
 
   return (
     <SectionCard title={title} className="mt-4">
+      <details className="text-sm text-gray-500 mb-3">
+        <summary className="cursor-pointer hover:text-gray-700">計算方法</summary>
+        <p className="mt-2 pl-4 text-xs leading-relaxed">
+          {yesLabel}のイベントがある日とない日に分類し、各グループに含まれる日の全チェックインを対象に、頭の冴えなど各スコアの平均を求めています。
+        </p>
+      </details>
       {yes.count === 0 ? (
         <p className="text-sm text-gray-500">
           {eventType === "exercise" ? "運動" : "カフェイン"}のイベントがありません。記録タブから追加してください。
