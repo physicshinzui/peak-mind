@@ -1,6 +1,6 @@
 {
-  "name": "Brain Condition",
-  "short_name": "BrainCond",
+  "name": "Peak Mind",
+  "short_name": "PeakMind",
   "description": "頭の調子を記録し、ライフスタイルの実験で最適化するアプリ",
   "start_url": "/now",
   "display": "standalone",

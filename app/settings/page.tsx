@@ -158,7 +158,7 @@ export default function SettingsPage() {
       </SectionCard>
 
       <div className="mt-6 text-center text-xs text-gray-400">
-        <p>Brain Condition</p>
+        <p>Peak Mind</p>
         <p>ローカル保存版</p>
       </div>
 

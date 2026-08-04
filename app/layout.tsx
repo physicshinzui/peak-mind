@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Brain Condition",
+  title: "Peak Mind",
   description: "頭の調子を記録し、ライフスタイルの実験で最適化するアプリ",
 };
 
@@ -38,7 +38,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#2563eb" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Brain Condition" />
+        <meta name="apple-mobile-web-app-title" content="Peak Mind" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
