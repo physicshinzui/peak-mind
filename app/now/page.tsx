@@ -70,9 +70,9 @@ export default function NowPage() {
       db.checkIns.where("timestamp").between(todayStart, todayEnd).toArray(),
       db.events.where("timestamp").between(todayStart, todayEnd).toArray(),
       db.sleepRecords.where("date").equals(yesterday).first(),
-      db.checkIns.where("timestamp").above(format(subDays(new Date(), 30), "yyyy-MM-dd")).toArray(),
-      db.events.where("timestamp").above(format(subDays(new Date(), 30), "yyyy-MM-dd")).toArray(),
-      db.sleepRecords.where("date").above(format(subDays(new Date(), 30), "yyyy-MM-dd")).toArray(),
+      db.checkIns.where("timestamp").above(format(subDays(new Date(), 7), "yyyy-MM-dd")).toArray(),
+      db.events.where("timestamp").above(format(subDays(new Date(), 7), "yyyy-MM-dd")).toArray(),
+      db.sleepRecords.where("date").above(format(subDays(new Date(), 7), "yyyy-MM-dd")).toArray(),
     ]);
 
     const hintList = generateHints({

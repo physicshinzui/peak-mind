@@ -109,7 +109,7 @@ export function generateHints(context: Context): Hint[] {
     });
   }
 
-  if (recentCheckIns.length >= 10) {
+  if (recentCheckIns.length >= 3) {
     const withCaffeine = clarityAfter(recentEvents, "caffeine", 3, recentCheckIns);
     const withoutCaffeine = clarityWithout(recentEvents, "caffeine", recentCheckIns);
     if (withCaffeine !== null && withoutCaffeine !== null && withCaffeine < withoutCaffeine - 0.3) {
@@ -124,7 +124,7 @@ export function generateHints(context: Context): Hint[] {
 
   // Meal hint
   const hadMealToday = todayEvents.some((e) => e.type === "meal");
-  if (recentCheckIns.length >= 10) {
+  if (recentCheckIns.length >= 3) {
     const withMeal = clarityAfter(recentEvents, "meal", 2, recentCheckIns);
     const withoutMeal = clarityWithout(recentEvents, "meal", recentCheckIns);
     if (withMeal !== null && withoutMeal !== null && withMeal < withoutMeal - 0.3) {
@@ -148,7 +148,7 @@ export function generateHints(context: Context): Hint[] {
 
   // Exercise hint
   const hadExerciseToday = todayEvents.some((e) => e.type === "exercise");
-  if (!hadExerciseToday && recentCheckIns.length >= 14) {
+  if (!hadExerciseToday && recentCheckIns.length >= 3) {
     const exerciseDays = new Set(
       recentEvents.filter((e) => e.type === "exercise").map((e) => e.timestamp.split("T")[0])
     );

@@ -38,12 +38,10 @@ export function generateId(): string {
 export async function getAllTimelineItems(): Promise<
   { id: string; timestamp: string; kind: string; data: unknown }[]
 > {
-  const [checkIns, events, sleepRecords, experiments, tests] = await Promise.all([
+  const [checkIns, events, sleepRecords] = await Promise.all([
     db.checkIns.toArray(),
     db.events.toArray(),
     db.sleepRecords.toArray(),
-    db.experiments.toArray(),
-    db.cognitiveTests.toArray(),
   ]);
 
   const items = [
@@ -64,18 +62,6 @@ export async function getAllTimelineItems(): Promise<
       timestamp: `${s.date}T00:00:00.000Z`,
       kind: "sleep",
       data: s as unknown,
-    })),
-    ...experiments.map((ex) => ({
-      id: ex.id,
-      timestamp: ex.startedAt,
-      kind: "experiment",
-      data: ex as unknown,
-    })),
-    ...tests.map((t) => ({
-      id: t.id,
-      timestamp: t.timestamp,
-      kind: "test",
-      data: t as unknown,
     })),
   ];
 
