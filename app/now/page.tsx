@@ -12,10 +12,10 @@ import { ja } from "date-fns/locale";
 import { Sun, Coffee, Briefcase, Moon, FlaskConical } from "lucide-react";
 
 const CHECK_IN_TYPES: { type: CheckInType; label: string; icon: typeof Sun }[] = [
-  { type: "morning", label: "起床時", icon: Sun },
-  { type: "midday", label: "昼", icon: Coffee },
-  { type: "post-work", label: "作業後", icon: Briefcase },
-  { type: "evening", label: "就寝前", icon: Moon },
+  { type: "morning", label: "朝", icon: Sun },
+  { type: "noon", label: "昼", icon: Coffee },
+  { type: "evening", label: "夕方", icon: Briefcase },
+  { type: "night", label: "夜", icon: Moon },
 ];
 
 const DEFAULT_SCORES: Scores = {

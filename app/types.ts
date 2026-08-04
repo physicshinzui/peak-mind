@@ -1,7 +1,7 @@
 export type Score1To5 = 1 | 2 | 3 | 4 | 5;
 export type Intensity1To3 = 1 | 2 | 3;
 
-export type CheckInType = "morning" | "midday" | "post-work" | "evening" | "ad-hoc";
+export type CheckInType = "morning" | "noon" | "evening" | "night" | "ad-hoc";
 
 export interface Scores {
   clarity: Score1To5;
