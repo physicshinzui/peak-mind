@@ -26,6 +26,7 @@ const DEFAULT_SCORES: Scores = {
   motivation: 3,
   anxiety: 3,
   decisionFatigue: 3,
+  discomfort: 3,
 };
 
 export default function NowPage() {

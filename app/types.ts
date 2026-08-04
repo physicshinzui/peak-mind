@@ -11,6 +11,7 @@ export interface Scores {
   motivation: Score1To5;
   anxiety: Score1To5;
   decisionFatigue: Score1To5;
+  discomfort: Score1To5;
 }
 
 export const SCORE_LABELS: Record<keyof Scores, string> = {
@@ -21,6 +22,7 @@ export const SCORE_LABELS: Record<keyof Scores, string> = {
   motivation: "やる気",
   anxiety: "不安・緊張",
   decisionFatigue: "意思決定疲労",
+  discomfort: "不調",
 };
 
 export interface CheckIn {
