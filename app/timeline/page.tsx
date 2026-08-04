@@ -8,9 +8,11 @@ import {
   CheckIn,
   LifeEvent,
   SleepRecord,
+  Scores,
   EventType,
   EVENT_TYPE_LABELS,
   Intensity1To3,
+  SCORE_LABELS,
 } from "../types";
 import { db, generateId, getAllTimelineItems } from "../lib/db";
 import { format, parseISO } from "date-fns";
@@ -28,6 +30,8 @@ import {
   BedSingle,
   Thermometer,
   Trash2,
+  Pencil,
+  X,
 } from "lucide-react";
 
 const EVENT_ICONS: Record<EventType, typeof Utensils> = {
@@ -63,6 +67,27 @@ function TimelineContent() {
   const [bedTime, setBedTime] = useState("23:00");
   const [wakeTime, setWakeTime] = useState("07:00");
   const [sleepQuality, setSleepQuality] = useState<1 | 2 | 3 | 4 | 5>(3);
+
+  const [editingItem, setEditingItem] = useState<{ kind: string; id: string } | null>(null);
+  const [editScores, setEditScores] = useState<Scores>({
+    clarity: 3,
+    focus: 3,
+    mood: 3,
+    anxiety: 3,
+    decisionFatigue: 3,
+    discomfort: 3,
+  });
+  const [editNote, setEditNote] = useState("");
+  const [editEventType, setEditEventType] = useState<EventType>("meal");
+  const [editEventLabel, setEditEventLabel] = useState("");
+  const [editEventAmount, setEditEventAmount] = useState("");
+  const [editEventUnit, setEditEventUnit] = useState("");
+  const [editEventIntensity, setEditEventIntensity] = useState<Intensity1To3>(2);
+  const [editEventNote, setEditEventNote] = useState("");
+  const [editSleepDate, setEditSleepDate] = useState("");
+  const [editBedTime, setEditBedTime] = useState("");
+  const [editWakeTime, setEditWakeTime] = useState("");
+  const [editSleepQuality, setEditSleepQuality] = useState<1 | 2 | 3 | 4 | 5>(3);
 
   const load = async () => {
     setItems(await getAllTimelineItems());
@@ -120,6 +145,68 @@ function TimelineContent() {
     if (kind === "checkin") await db.checkIns.delete(id);
     if (kind === "event") await db.events.delete(id);
     if (kind === "sleep") await db.sleepRecords.delete(id);
+    load();
+  };
+
+  const startEdit = async (kind: string, id: string) => {
+    setEditingItem({ kind, id });
+    if (kind === "checkin") {
+      const c = await db.checkIns.get(id);
+      if (c) {
+        setEditScores(c.scores);
+        setEditNote(c.context?.note || "");
+      }
+    } else if (kind === "event") {
+      const e = await db.events.get(id);
+      if (e) {
+        setEditEventType(e.type);
+        setEditEventLabel(e.detail.label);
+        setEditEventAmount(e.detail.amount?.toString() || "");
+        setEditEventUnit(e.detail.unit || "");
+        setEditEventIntensity(e.detail.intensity || 2);
+        setEditEventNote(e.note || "");
+      }
+    } else if (kind === "sleep") {
+      const s = await db.sleepRecords.get(id);
+      if (s) {
+        setEditSleepDate(s.date);
+        setEditBedTime(s.bedTime);
+        setEditWakeTime(s.wakeTime);
+        setEditSleepQuality(s.quality);
+      }
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingItem(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingItem) return;
+    const { kind, id } = editingItem;
+    if (kind === "checkin") {
+      await db.checkIns.update(id, { scores: editScores, context: { note: editNote || undefined } });
+    } else if (kind === "event") {
+      if (!editEventLabel.trim()) return;
+      await db.events.update(id, {
+        type: editEventType,
+        detail: {
+          label: editEventLabel,
+          amount: editEventAmount ? parseFloat(editEventAmount) : undefined,
+          unit: editEventUnit || undefined,
+          intensity: editEventType === "exercise" ? editEventIntensity : undefined,
+        },
+        note: editEventNote || undefined,
+      });
+    } else if (kind === "sleep") {
+      await db.sleepRecords.update(id, {
+        date: editSleepDate,
+        bedTime: editBedTime,
+        wakeTime: editWakeTime,
+        quality: editSleepQuality,
+      });
+    }
+    setEditingItem(null);
     load();
   };
 
@@ -199,6 +286,183 @@ function TimelineContent() {
     return null;
   };
 
+  const renderEditForm = (kind: string) => {
+    if (kind === "checkin") {
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="font-medium text-gray-800">チェックインを編集</p>
+            <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600">
+              <X size={18} />
+            </button>
+          </div>
+          <div className="space-y-3">
+            {(Object.keys(editScores) as (keyof Scores)[]).map((key) => (
+              <div key={key}>
+                <p className="text-sm font-medium text-gray-700 mb-1">{SCORE_LABELS[key]}</p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setEditScores((prev) => ({ ...prev, [key]: v as 1 | 2 | 3 | 4 | 5 }))}
+                      className={`flex-1 h-10 rounded-lg text-sm font-semibold ${
+                        editScores[key] === v
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={editNote}
+            onChange={(e) => setEditNote(e.target.value)}
+            placeholder="メモ"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+          <button
+            onClick={saveEdit}
+            className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg"
+          >
+            保存
+          </button>
+        </div>
+      );
+    }
+
+    if (kind === "event") {
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="font-medium text-gray-800">イベントを編集</p>
+            <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600">
+              <X size={18} />
+            </button>
+          </div>
+          <select
+            value={editEventType}
+            onChange={(e) => setEditEventType(e.target.value as EventType)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          >
+            {Object.entries(EVENT_TYPE_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={editEventLabel}
+            onChange={(e) => setEditEventLabel(e.target.value)}
+            placeholder="内容"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="number"
+              value={editEventAmount}
+              onChange={(e) => setEditEventAmount(e.target.value)}
+              placeholder="量"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+            <input
+              type="text"
+              value={editEventUnit}
+              onChange={(e) => setEditEventUnit(e.target.value)}
+              placeholder="単位"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </div>
+          {editEventType === "exercise" && (
+            <select
+              value={editEventIntensity}
+              onChange={(e) => setEditEventIntensity(parseInt(e.target.value) as Intensity1To3)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            >
+              <option value={1}>軽い</option>
+              <option value={2}>普通</option>
+              <option value={3}>激しい</option>
+            </select>
+          )}
+          <input
+            type="text"
+            value={editEventNote}
+            onChange={(e) => setEditEventNote(e.target.value)}
+            placeholder="メモ"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+          <button
+            onClick={saveEdit}
+            className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg"
+          >
+            保存
+          </button>
+        </div>
+      );
+    }
+
+    if (kind === "sleep") {
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="font-medium text-gray-800">睡眠を編集</p>
+            <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600">
+              <X size={18} />
+            </button>
+          </div>
+          <input
+            type="date"
+            value={editSleepDate}
+            onChange={(e) => setEditSleepDate(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="time"
+              value={editBedTime}
+              onChange={(e) => setEditBedTime(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+            <input
+              type="time"
+              value={editWakeTime}
+              onChange={(e) => setEditWakeTime(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-1">睡眠の質</p>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setEditSleepQuality(v as 1 | 2 | 3 | 4 | 5)}
+                  className={`flex-1 h-10 rounded-lg ${
+                    editSleepQuality === v ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={saveEdit}
+            className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg"
+          >
+            保存
+          </button>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <main className="min-h-screen pb-24 px-4 pt-6 max-w-md mx-auto">
       <header className="mb-6">
@@ -235,19 +499,34 @@ function TimelineContent() {
               </p>
             </SectionCard>
           ) : (
-            items.map((item) => (
-              <SectionCard key={`${item.kind}-${item.id}`}>
-                <div className="flex justify-between items-start">
-                  {renderItem(item)}
-                  <button
-                    onClick={() => deleteItem(item.kind, item.id)}
-                    className="ml-2 text-gray-400 hover:text-red-500"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </SectionCard>
-            ))
+            items.map((item) => {
+              const isEditing = editingItem?.kind === item.kind && editingItem?.id === item.id;
+              return (
+                <SectionCard key={`${item.kind}-${item.id}`}>
+                  {isEditing ? (
+                    renderEditForm(item.kind)
+                  ) : (
+                    <div className="flex justify-between items-start">
+                      {renderItem(item)}
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          onClick={() => startEdit(item.kind, item.id)}
+                          className="text-gray-400 hover:text-blue-500"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => deleteItem(item.kind, item.id)}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </SectionCard>
+              );
+            })
           )}
         </div>
       )}

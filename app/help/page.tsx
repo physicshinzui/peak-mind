@@ -2,11 +2,15 @@
 
 import { Navigation } from "../components/Navigation";
 import { SectionCard } from "../components/SectionCard";
+import "katex/dist/katex.min.css";
+import { BlockMath } from "react-katex";
+import type { ReactNode } from "react";
 
-function Formula({ children }: { children: React.ReactNode }) {
+function Formula({ children }: { children: ReactNode }) {
+  const math = typeof children === "string" ? children : "";
   return (
-    <div className="bg-gray-50 rounded-lg p-3 my-3 text-center font-mono text-sm text-gray-800 overflow-x-auto">
-      {children}
+    <div className="bg-gray-50 rounded-lg p-3 my-3 overflow-x-auto">
+      <BlockMath math={math} />
     </div>
   );
 }
@@ -24,7 +28,7 @@ export default function HelpPage() {
           各日の全チェックインのスコアを算術平均しています。例えば、朝と昼と夕方にチェックインした場合、その日の頭の冴えは3回の平均値になります。
         </p>
         <Formula>
-          x̄ = (1/n) Σᵢ xᵢ
+          {'\\bar{x} = \\frac{1}{n}\\sum_{i} x_i'}
         </Formula>
         <p className="text-xs text-gray-500">
           xᵢ: 各チェックインのスコア、n: その日のチェックイン回数
@@ -36,13 +40,13 @@ export default function HelpPage() {
           各日の睡眠時間を計算し、選択した閾値未満と以上の日に分類します。各グループに含まれる日の全チェックインを対象に、各スコアの平均を求めています。
         </p>
         <Formula>
-          睡眠時間 = 起床時刻 − 就寝時刻
+          {'\\text{睡眠時間} = \\text{起床時刻} - \\text{就寝時刻}'}
         </Formula>
         <Formula>
-          Clarity&lt;T = mean{'{'}c.scores.clarity | c.date ∈ D&lt;T{'}'}
+          {'\\text{Clarity}_{<T} = \\text{mean}\\{c.\\text{scores}.\\text{clarity} \\mid c.\\text{date} \\in D_{<T}\\}'}
         </Formula>
         <Formula>
-          Clarity≥T = mean{'{'}c.scores.clarity | c.date ∈ D≥T{'}'}
+          {'\\text{Clarity}_{\\ge T} = \\text{mean}\\{c.\\text{scores}.\\text{clarity} \\mid c.\\text{date} \\in D_{\\ge T}\\}'}
         </Formula>
         <p className="text-xs text-gray-500">
           T: 選択した閾値（時間）、D&lt;T: 睡眠時間がT未満の日の集合、D≥T: T以上の日の集合
@@ -54,10 +58,10 @@ export default function HelpPage() {
           イベント（運動またはカフェイン）がある日とない日に分類し、各グループに含まれる日の全チェックインを対象に、各スコアの平均を求めています。
         </p>
         <Formula>
-          Score_with = mean{'{'}c.scores.s | c.date ∈ E{'}'}
+          {'\\text{Score}_{\\text{with}} = \\text{mean}\\{c.\\text{scores}.s \\mid c.\\text{date} \\in E\\}'}
         </Formula>
         <Formula>
-          Score_without = mean{'{'}c.scores.s | c.date ∉ E{'}'}
+          {'\\text{Score}_{\\text{without}} = \\text{mean}\\{c.\\text{scores}.s \\mid c.\\text{date} \\notin E\\}'}
         </Formula>
         <p className="text-xs text-gray-500">
           E: イベントが記録された日の集合、s: 比較するスコア（clarity など）
@@ -69,7 +73,7 @@ export default function HelpPage() {
           2つの変数が連動しているかをピアソンの相関係数 r で計算しています。絶対値が0.3を超える場合に「傾向がある」とみなしています。
         </p>
         <Formula>
-          r = Σ(xᵢ − x̄)(yᵢ − ȳ) / √[Σ(xᵢ − x̄)² Σ(yᵢ − ȳ)²]
+          {'r = \\frac{\\sum (x_i - \\bar{x})(y_i - \\bar{y})}{\\sqrt{\\sum (x_i - \\bar{x})^2 \\sum (y_i - \\bar{y})^2}}'}
         </Formula>
         <p className="text-xs text-gray-500">
           x: 睡眠時間などの説明変数、y: Clarityなどの目的変数
