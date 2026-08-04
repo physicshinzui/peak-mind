@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Peak Mind
 
-## Getting Started
+頭の冴え（Clarity）を最大化する条件を探す、個人向けのライフスタイル記録・実験アプリです。
 
-First, run the development server:
+## 概要
+
+食事、睡眠、運動、カフェイン、ストレスなど、日々の生活イベントと主観的な頭の調子を記録し、その関係を分析します。データはブラウザ内の IndexedDB に保存されるため、サーバーへの送信はありません。
+
+## 主な機能
+
+- **マイクロチェックイン**: 朝・昼・夕方・夜のタイミングで、頭の冴えや集中力、気分などを1〜5のスコアで記録
+- **イベント記録**: 食事、水、カフェイン、運動、サプリメント、休憩、昼寝、アルコール、作業、睡眠、不調などを記録
+- **睡眠記録**: 就寝・起床時刻と睡眠の質を記録
+- **タイムライン**: 記録したチェックイン・イベント・睡眠を時系列で確認・編集
+- **分析**: スコアの推移、条件付き平均（睡眠時間・運動・カフェイン）、相関係数を確認
+- **ヒント**: 過去7日間のデータから、今の行動に役立つ条件付きのアドバイスを提示
+- **実験**: 特定の生活習慣の変更を期間付きで記録し、ベースラインとの比較レポートを生成
+- **PWA**: スマホのホーム画面に追加してアプリのように利用可能
+
+## 技術スタック
+
+- [Next.js](https://nextjs.org/) 14 (App Router)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Dexie.js](https://dexie.org/) (IndexedDB)
+- [Recharts](https://recharts.org/)
+- [next-pwa](https://github.com/shadowwalker/next-pwa)
+
+## 開発
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000) をブラウザで開きます。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ビルド
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+```
 
-## Learn More
+## デプロイ
 
-To learn more about Next.js, take a look at the following resources:
+GitHub Actions で自動的に GitHub Pages にデプロイされます。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 公開URL: `https://physicshinzui.github.io/peak-mind/`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## データについて
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+すべての記録データは端末内の IndexedDB に保存されます。別端末間の同期機能は現時点ではありません。
