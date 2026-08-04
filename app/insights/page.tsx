@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { Navigation } from "../components/Navigation";
 import { SectionCard } from "../components/SectionCard";
-import { CheckIn, SleepRecord, SCORE_LABELS } from "../types";
+import { CheckIn, SleepRecord, LifeEvent, SCORE_LABELS } from "../types";
 import { db } from "../lib/db";
 import { format, parseISO, subDays } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -56,14 +56,20 @@ const SLEEP_THRESHOLDS = [6, 6.5, 7, 7.5, 8, 8.5, 9];
 export default function InsightsPage() {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [sleepRecords, setSleepRecords] = useState<SleepRecord[]>([]);
+  const [events, setEvents] = useState<LifeEvent[]>([]);
   const [range, setRange] = useState<7 | 14 | 30 | 90 | 180 | 365>(7);
   const [sleepThreshold, setSleepThreshold] = useState(7);
 
   useEffect(() => {
     const load = async () => {
-      const [c, s] = await Promise.all([db.checkIns.toArray(), db.sleepRecords.toArray()]);
+      const [c, s, e] = await Promise.all([
+        db.checkIns.toArray(),
+        db.sleepRecords.toArray(),
+        db.events.toArray(),
+      ]);
       setCheckIns(c);
       setSleepRecords(s);
+      setEvents(e);
     };
     load();
   }, []);
@@ -285,6 +291,24 @@ export default function InsightsPage() {
         onThresholdChange={setSleepThreshold}
       />
 
+      <EventConditionalSection
+        checkIns={checkIns}
+        events={events}
+        eventType="exercise"
+        title="条件付き平均：運動"
+        yesLabel="運動あり"
+        noLabel="運動なし"
+      />
+
+      <EventConditionalSection
+        checkIns={checkIns}
+        events={events}
+        eventType="caffeine"
+        title="条件付き平均：カフェイン"
+        yesLabel="カフェインあり"
+        noLabel="カフェインなし"
+      />
+
       <Navigation />
     </main>
   );
@@ -408,6 +432,113 @@ function ConditionalAverageSection({
                   {(above.clarity - below.clarity).toFixed(2)} {" "}
                 </span>
                 高くなっています。
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+interface EventConditionalSectionProps {
+  checkIns: CheckIn[];
+  events: LifeEvent[];
+  eventType: "exercise" | "caffeine";
+  title: string;
+  yesLabel: string;
+  noLabel: string;
+}
+
+function EventConditionalSection({
+  checkIns,
+  events,
+  eventType,
+  title,
+  yesLabel,
+  noLabel,
+}: EventConditionalSectionProps) {
+  const scoreKeys = useMemo(() => Object.keys(SCORE_LABELS) as (keyof typeof SCORE_LABELS)[], []);
+
+  const { yes, no } = useMemo(() => {
+    const yesDays = new Set(
+      events.filter((e) => e.type === eventType).map((e) => e.timestamp.split("T")[0])
+    );
+
+    const yesCheckIns = checkIns.filter((c) =>
+      yesDays.has(format(parseISO(c.timestamp), "yyyy-MM-dd"))
+    );
+    const noCheckIns = checkIns.filter(
+      (c) => !yesDays.has(format(parseISO(c.timestamp), "yyyy-MM-dd"))
+    );
+
+    return {
+      yes: {
+        count: yesDays.size,
+        clarity: average(yesCheckIns.map((c) => c.scores.clarity)),
+        scores: Object.fromEntries(
+          scoreKeys.map((key) => [key, average(yesCheckIns.map((c) => c.scores[key]))])
+        ),
+      },
+      no: {
+        count: new Set(checkIns.map((c) => c.timestamp.split("T")[0])).size - yesDays.size,
+        clarity: average(noCheckIns.map((c) => c.scores.clarity)),
+        scores: Object.fromEntries(
+          scoreKeys.map((key) => [key, average(noCheckIns.map((c) => c.scores[key]))])
+        ),
+      },
+    };
+  }, [checkIns, events, eventType, scoreKeys]);
+
+  return (
+    <SectionCard title={title} className="mt-4">
+      {yes.count === 0 ? (
+        <p className="text-sm text-gray-500">
+          {eventType === "exercise" ? "運動" : "カフェイン"}のイベントがありません。記録タブから追加してください。
+        </p>
+      ) : (
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2 text-sm font-medium text-gray-500 text-center">
+            <span></span>
+            <span>{yesLabel}<br />({yes.count}日)</span>
+            <span>{noLabel}<br />({Math.max(0, no.count)}日)</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 items-center text-sm text-center py-2 border-b border-gray-100">
+            <span className="text-left font-medium text-gray-700">頭の冴え</span>
+            <span className="font-semibold text-gray-800">{yes.clarity.toFixed(2)}</span>
+            <span className="font-semibold text-gray-800">{no.clarity.toFixed(2)}</span>
+          </div>
+
+          {scoreKeys
+            .filter((key) => key !== "clarity")
+            .map((key) => {
+              const y = yes.scores[key];
+              const n = no.scores[key];
+              return (
+                <div
+                  key={key}
+                  className="grid grid-cols-3 gap-2 items-center text-sm text-center py-2 border-b border-gray-100 last:border-0"
+                >
+                  <span className="text-left font-medium text-gray-700">
+                    {SCORE_LABELS[key]}
+                  </span>
+                  <span className="font-semibold text-gray-800">{y.toFixed(2)}</span>
+                  <span className="font-semibold text-gray-800">{n.toFixed(2)}</span>
+                </div>
+              );
+            })}
+
+          {yes.clarity > 0 && no.clarity > 0 && (
+            <div className="bg-blue-50 rounded-xl p-4 mt-3">
+              <p className="text-sm text-gray-700">
+                {yesLabel}の日は、頭の冴えが
+                <span className="font-bold text-blue-700">
+                  {" "}
+                  {(yes.clarity - no.clarity).toFixed(2)} {" "}
+                </span>
+                {yes.clarity > no.clarity ? "高く" : "低く"}
+                なっています。
               </p>
             </div>
           )}
