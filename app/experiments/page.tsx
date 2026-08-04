@@ -93,6 +93,12 @@ export default function ExperimentsPage() {
     setSelectedExperiment(null);
   };
 
+  const resumeExperiment = async (exp: Experiment) => {
+    await db.experiments.update(exp.id, { status: "running", endedAt: undefined });
+    load();
+    setSelectedExperiment(null);
+  };
+
   const getReport = async (exp: Experiment) => {
     const startDate = parseISO(exp.startedAt);
     const endDate = exp.endedAt ? parseISO(exp.endedAt) : new Date();
@@ -226,11 +232,12 @@ export default function ExperimentsPage() {
               <input
                 type="number"
                 min={3}
-                max={14}
+                max={30}
                 value={baselineDays}
                 onChange={(e) => setBaselineDays(parseInt(e.target.value) || 7)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2"
               />
+              <p className="text-xs text-gray-500 mt-1">3〜30日の間で選べます</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -280,8 +287,8 @@ export default function ExperimentsPage() {
             <p className="text-sm text-gray-600 mb-4">
               {selectedExperiment.dailyCheckItem}
             </p>
-            <div className="flex gap-2">
-              {selectedExperiment.status === "running" && (
+            <div className="flex gap-2 flex-wrap">
+              {selectedExperiment.status === "running" ? (
                 <>
                   <button
                     onClick={() => completeExperiment(selectedExperiment)}
@@ -298,12 +305,19 @@ export default function ExperimentsPage() {
                     中止
                   </button>
                 </>
+              ) : (
+                <button
+                  onClick={() => resumeExperiment(selectedExperiment)}
+                  className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg bg-blue-100 text-blue-700"
+                >
+                  <RotateCcw size={16} />
+                  再開
+                </button>
               )}
               <button
                 onClick={() => setSelectedExperiment(null)}
                 className="flex items-center justify-center gap-1 px-4 py-2 rounded-lg bg-gray-100 text-gray-700"
               >
-                <RotateCcw size={16} />
                 戻る
               </button>
             </div>
