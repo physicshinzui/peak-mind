@@ -18,24 +18,30 @@ import {
   Brain,
   Utensils,
   Coffee,
+  Droplets,
   Dumbbell,
   Pill,
   Moon,
   Wine,
   Briefcase,
   Armchair,
+  BedSingle,
+  Thermometer,
   Trash2,
 } from "lucide-react";
 
 const EVENT_ICONS: Record<EventType, typeof Utensils> = {
   meal: Utensils,
   caffeine: Coffee,
+  water: Droplets,
   exercise: Dumbbell,
   supplement: Pill,
   break: Armchair,
+  nap: BedSingle,
   alcohol: Wine,
   work: Briefcase,
   sleep: Moon,
+  discomfort: Thermometer,
 };
 
 function TimelineContent() {

@@ -67,25 +67,33 @@ export default function InsightsPage() {
 
   const cutoff = useMemo(() => subDays(new Date(), range), [range]);
 
+  const scoreKeys = useMemo(() => Object.keys(SCORE_LABELS) as (keyof typeof SCORE_LABELS)[], []);
+
   const dailyData = useMemo(() => {
-    const map = new Map<
-      string,
-      { date: string; clarity: number[]; focus: number[]; energy: number[]; mood: number[]; sleep: number | null; sleepHours: number | null }
-    >();
+    type DailyEntry = {
+      date: string;
+      sleep: number | null;
+      sleepHours: number | null;
+    } & Record<(typeof scoreKeys)[number], number[]>;
+
+    const map = new Map<string, DailyEntry>();
 
     for (let i = 0; i < range; i++) {
       const d = format(subDays(new Date(), i), "yyyy-MM-dd");
-      map.set(d, { date: d, clarity: [], focus: [], energy: [], mood: [], sleep: null, sleepHours: null });
+      const entry: DailyEntry = { date: d, sleep: null, sleepHours: null } as DailyEntry;
+      scoreKeys.forEach((key) => {
+        entry[key] = [];
+      });
+      map.set(d, entry);
     }
 
     checkIns.forEach((c) => {
       const d = format(parseISO(c.timestamp), "yyyy-MM-dd");
       const entry = map.get(d);
       if (!entry) return;
-      entry.clarity.push(c.scores.clarity);
-      entry.focus.push(c.scores.focus);
-      entry.energy.push(c.scores.energy);
-      entry.mood.push(c.scores.mood);
+      scoreKeys.forEach((key) => {
+        entry[key].push(c.scores[key]);
+      });
     });
 
     sleepRecords.forEach((s) => {
@@ -99,14 +107,11 @@ export default function InsightsPage() {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((d) => ({
         label: format(parseISO(d.date), "M/d", { locale: ja }),
-        clarity: average(d.clarity) || null,
-        focus: average(d.focus) || null,
-        energy: average(d.energy) || null,
-        mood: average(d.mood) || null,
+        ...Object.fromEntries(scoreKeys.map((key) => [key, average(d[key]) || null])),
         sleep: d.sleep,
         sleepHours: d.sleepHours,
       }));
-  }, [checkIns, sleepRecords, range]);
+  }, [checkIns, sleepRecords, range, scoreKeys]);
 
   const recentCheckIns = useMemo(
     () => checkIns.filter((c) => parseISO(c.timestamp) >= cutoff),
@@ -120,23 +125,23 @@ export default function InsightsPage() {
   const stats = useMemo(() => {
     const sleepHours = recentSleep.map((s) => calcSleepHours(s.bedTime, s.wakeTime));
     const sleepQuality = recentSleep.map((s) => s.quality);
-    const clarity = recentCheckIns.map((c) => c.scores.clarity);
-    const focus = recentCheckIns.map((c) => c.scores.focus);
-    const energy = recentCheckIns.map((c) => c.scores.energy);
-    const mood = recentCheckIns.map((c) => c.scores.mood);
+
+    const scoreStats = Object.fromEntries(
+      scoreKeys.map((key) => [
+        key,
+        average(recentCheckIns.map((c) => c.scores[key])),
+      ])
+    );
 
     return {
       avgSleep: average(sleepHours),
       avgSleepQuality: average(sleepQuality),
-      avgClarity: average(clarity),
-      avgFocus: average(focus),
-      avgEnergy: average(energy),
-      avgMood: average(mood),
-      sleepClarity: correlation(sleepHours, clarity),
-      sleepFocus: correlation(sleepHours, focus),
-      sleepQualityClarity: correlation(sleepQuality, clarity),
+      ...scoreStats,
+      sleepClarity: correlation(sleepHours, recentCheckIns.map((c) => c.scores.clarity)),
+      sleepFocus: correlation(sleepHours, recentCheckIns.map((c) => c.scores.focus)),
+      sleepQualityClarity: correlation(sleepQuality, recentCheckIns.map((c) => c.scores.clarity)),
     };
-  }, [recentCheckIns, recentSleep]);
+  }, [recentCheckIns, recentSleep, scoreKeys]);
 
   const insights = useMemo(() => {
     const list: string[] = [];
@@ -165,7 +170,7 @@ export default function InsightsPage() {
     return list;
   }, [stats, recentCheckIns.length]);
 
-  const hasData = dailyData.some((d) => d.clarity || d.sleep);
+  const hasData = dailyData.some((d) => scoreKeys.some((key) => (d as Record<string, unknown>)[key]) || d.sleep);
 
   return (
     <main className="min-h-screen pb-24 px-4 pt-6 max-w-md mx-auto">
@@ -201,21 +206,17 @@ export default function InsightsPage() {
             {stats.avgSleepQuality.toFixed(1)}
           </p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">頭の冴え</p>
-          <p className="text-2xl font-bold text-purple-600">
-            {stats.avgClarity.toFixed(1)}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <p className="text-xs text-gray-500">集中力</p>
-          <p className="text-2xl font-bold text-green-600">
-            {stats.avgFocus.toFixed(1)}
-          </p>
-        </div>
+        {scoreKeys.slice(0, 4).map((key) => (
+          <div key={key} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">{SCORE_LABELS[key]}</p>
+            <p className="text-2xl font-bold text-gray-800">
+              {(stats as Record<string, number>)[key].toFixed(1)}
+            </p>
+          </div>
+        ))}
       </div>
 
-      <SectionCard title="4軸スコアの推移">
+      <SectionCard title="スコアの推移">
         {!hasData ? (
           <p className="text-sm text-gray-500">データが不足しています。</p>
         ) : (
@@ -226,10 +227,20 @@ export default function InsightsPage() {
                 <XAxis dataKey="label" />
                 <YAxis domain={[0, 6]} />
                 <Tooltip />
-                <Line type="monotone" dataKey="clarity" name={SCORE_LABELS.clarity} stroke="#9333ea" strokeWidth={2} connectNulls />
-                <Line type="monotone" dataKey="focus" name={SCORE_LABELS.focus} stroke="#16a34a" strokeWidth={2} connectNulls />
-                <Line type="monotone" dataKey="energy" name={SCORE_LABELS.energy} stroke="#f59e0b" strokeWidth={2} connectNulls />
-                <Line type="monotone" dataKey="mood" name={SCORE_LABELS.mood} stroke="#3b82f6" strokeWidth={2} connectNulls />
+                {scoreKeys.map((key, i) => {
+                  const colors = ["#9333ea", "#16a34a", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6", "#06b6d4"];
+                  return (
+                    <Line
+                      key={key}
+                      type="monotone"
+                      dataKey={key}
+                      name={SCORE_LABELS[key]}
+                      stroke={colors[i % colors.length]}
+                      strokeWidth={2}
+                      connectNulls
+                    />
+                  );
+                })}
               </LineChart>
             </ResponsiveContainer>
           </div>

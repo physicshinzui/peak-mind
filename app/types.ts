@@ -8,6 +8,9 @@ export interface Scores {
   focus: Score1To5;
   energy: Score1To5;
   mood: Score1To5;
+  motivation: Score1To5;
+  anxiety: Score1To5;
+  decisionFatigue: Score1To5;
 }
 
 export const SCORE_LABELS: Record<keyof Scores, string> = {
@@ -15,6 +18,9 @@ export const SCORE_LABELS: Record<keyof Scores, string> = {
   focus: "集中力",
   energy: "エネルギー",
   mood: "気分",
+  motivation: "やる気",
+  anxiety: "不安・緊張",
+  decisionFatigue: "意思決定疲労",
 };
 
 export interface CheckIn {
@@ -32,22 +38,28 @@ export interface CheckIn {
 export type EventType =
   | "meal"
   | "caffeine"
+  | "water"
   | "exercise"
   | "supplement"
   | "break"
+  | "nap"
   | "alcohol"
   | "work"
-  | "sleep";
+  | "sleep"
+  | "discomfort";
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   meal: "食事",
   caffeine: "カフェイン",
+  water: "水分",
   exercise: "運動",
   supplement: "サプリメント",
   break: "休息",
+  nap: "昼寝",
   alcohol: "飲酒",
   work: "作業",
   sleep: "睡眠",
+  discomfort: "不調",
 };
 
 export interface LifeEvent {

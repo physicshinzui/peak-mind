@@ -23,6 +23,9 @@ const DEFAULT_SCORES: Scores = {
   focus: 3,
   energy: 3,
   mood: 3,
+  motivation: 3,
+  anxiety: 3,
+  decisionFatigue: 3,
 };
 
 export default function NowPage() {
@@ -96,11 +99,8 @@ export default function NowPage() {
 
   const averageScore = lastCheckIn
     ? Math.round(
-        (lastCheckIn.scores.clarity +
-          lastCheckIn.scores.focus +
-          lastCheckIn.scores.energy +
-          lastCheckIn.scores.mood) /
-          4
+        Object.values(lastCheckIn.scores).reduce((a, b) => a + b, 0) /
+          Object.values(lastCheckIn.scores).length
       )
     : null;
 
