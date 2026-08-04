@@ -54,7 +54,7 @@ function correlation(x: number[], y: number[]): number {
 export default function InsightsPage() {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [sleepRecords, setSleepRecords] = useState<SleepRecord[]>([]);
-  const [range, setRange] = useState<7 | 14 | 30>(7);
+  const [range, setRange] = useState<7 | 14 | 30 | 90 | 180 | 365>(7);
 
   useEffect(() => {
     const load = async () => {
@@ -179,18 +179,18 @@ export default function InsightsPage() {
         <p className="text-sm text-gray-500">記録から傾向を読み解く</p>
       </header>
 
-      <div className="flex gap-2 mb-4">
-        {[7, 14, 30].map((days) => (
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {[7, 14, 30, 90, 180, 365].map((days) => (
           <button
             key={days}
-            onClick={() => setRange(days as 7 | 14 | 30)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+            onClick={() => setRange(days as typeof range)}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
               range === days
                 ? "bg-blue-600 text-white"
                 : "bg-white text-gray-700 border border-gray-200"
             }`}
           >
-            直近{days}日
+            {days >= 365 ? "1年" : days >= 30 ? `${days / 30}ヶ月` : `${days}日`}
           </button>
         ))}
       </div>

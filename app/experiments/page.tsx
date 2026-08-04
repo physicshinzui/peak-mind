@@ -6,7 +6,7 @@ import { Navigation } from "../components/Navigation";
 import { Experiment, MetricKey, SCORE_LABELS, CheckIn, SleepRecord } from "../types";
 import { db, generateId } from "../lib/db";
 import { format, parseISO, subDays } from "date-fns";
-import { FlaskConical, Plus, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
+import { FlaskConical, Plus, CheckCircle2, XCircle, RotateCcw, Trash2 } from "lucide-react";
 
 const METRIC_OPTIONS: { key: MetricKey; label: string }[] = [
   { key: "clarity", label: SCORE_LABELS.clarity },
@@ -95,6 +95,14 @@ export default function ExperimentsPage() {
 
   const resumeExperiment = async (exp: Experiment) => {
     await db.experiments.update(exp.id, { status: "running", endedAt: undefined });
+    load();
+    setSelectedExperiment(null);
+  };
+
+  const deleteExperiment = async (exp: Experiment) => {
+    if (!confirm(`「${exp.name}」を削除しますか？この実験のログも削除されます。`)) return;
+    await db.experiments.delete(exp.id);
+    await db.experimentLogs.where("experimentId").equals(exp.id).delete();
     load();
     setSelectedExperiment(null);
   };
@@ -314,6 +322,13 @@ export default function ExperimentsPage() {
                   再開
                 </button>
               )}
+              <button
+                onClick={() => deleteExperiment(selectedExperiment)}
+                className="flex items-center justify-center gap-1 px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"
+              >
+                <Trash2 size={16} />
+                削除
+              </button>
               <button
                 onClick={() => setSelectedExperiment(null)}
                 className="flex items-center justify-center gap-1 px-4 py-2 rounded-lg bg-gray-100 text-gray-700"
