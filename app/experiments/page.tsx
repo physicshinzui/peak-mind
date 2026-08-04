@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { SectionCard } from "../components/SectionCard";
 import { Navigation } from "../components/Navigation";
-import { Experiment, MetricKey, SCORE_LABELS, CheckIn, SleepRecord } from "../types";
+import { Experiment, MetricKey, SCORE_LABELS, SleepRecord } from "../types";
 import { db, generateId } from "../lib/db";
 import { format, parseISO, subDays } from "date-fns";
 import { FlaskConical, Plus, CheckCircle2, XCircle, RotateCcw, Trash2 } from "lucide-react";
@@ -11,8 +11,10 @@ import { FlaskConical, Plus, CheckCircle2, XCircle, RotateCcw, Trash2 } from "lu
 const METRIC_OPTIONS: { key: MetricKey; label: string }[] = [
   { key: "clarity", label: SCORE_LABELS.clarity },
   { key: "focus", label: SCORE_LABELS.focus },
-  { key: "energy", label: SCORE_LABELS.energy },
   { key: "mood", label: SCORE_LABELS.mood },
+  { key: "anxiety", label: SCORE_LABELS.anxiety },
+  { key: "decisionFatigue", label: SCORE_LABELS.decisionFatigue },
+  { key: "discomfort", label: SCORE_LABELS.discomfort },
   { key: "sleep", label: "睡眠の質" },
 ];
 
@@ -143,7 +145,7 @@ export default function ExperimentsPage() {
       }
     );
 
-    const metricAvg = (records: CheckIn[], key: MetricKey) => {
+    const metricAvg = (records: typeof allCheckIns, key: MetricKey) => {
       if (key === "sleep") return NaN;
       const values = records.map((r) => r.scores[key]);
       return average(values);
@@ -156,8 +158,10 @@ export default function ExperimentsPage() {
       baseline: {
         clarity: metricAvg(baselineCheckIns, "clarity"),
         focus: metricAvg(baselineCheckIns, "focus"),
-        energy: metricAvg(baselineCheckIns, "energy"),
         mood: metricAvg(baselineCheckIns, "mood"),
+        anxiety: metricAvg(baselineCheckIns, "anxiety"),
+        decisionFatigue: metricAvg(baselineCheckIns, "decisionFatigue"),
+        discomfort: metricAvg(baselineCheckIns, "discomfort"),
         sleep: sleepAvg(baselineSleep),
         sleepHours: average(
           baselineSleep.map((s) => calcSleepHours(s.bedTime, s.wakeTime))
@@ -166,8 +170,10 @@ export default function ExperimentsPage() {
       experiment: {
         clarity: metricAvg(experimentCheckIns, "clarity"),
         focus: metricAvg(experimentCheckIns, "focus"),
-        energy: metricAvg(experimentCheckIns, "energy"),
         mood: metricAvg(experimentCheckIns, "mood"),
+        anxiety: metricAvg(experimentCheckIns, "anxiety"),
+        decisionFatigue: metricAvg(experimentCheckIns, "decisionFatigue"),
+        discomfort: metricAvg(experimentCheckIns, "discomfort"),
         sleep: sleepAvg(experimentSleep),
         sleepHours: average(
           experimentSleep.map((s) => calcSleepHours(s.bedTime, s.wakeTime))

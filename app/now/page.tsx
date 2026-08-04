@@ -21,9 +21,7 @@ const CHECK_IN_TYPES: { type: CheckInType; label: string; icon: typeof Sun }[] =
 const DEFAULT_SCORES: Scores = {
   clarity: 3,
   focus: 3,
-  energy: 3,
   mood: 3,
-  motivation: 3,
   anxiety: 3,
   decisionFatigue: 3,
   discomfort: 3,

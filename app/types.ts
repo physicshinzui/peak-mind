@@ -6,9 +6,7 @@ export type CheckInType = "morning" | "noon" | "evening" | "night" | "ad-hoc";
 export interface Scores {
   clarity: Score1To5;
   focus: Score1To5;
-  energy: Score1To5;
   mood: Score1To5;
-  motivation: Score1To5;
   anxiety: Score1To5;
   decisionFatigue: Score1To5;
   discomfort: Score1To5;
@@ -17,9 +15,7 @@ export interface Scores {
 export const SCORE_LABELS: Record<keyof Scores, string> = {
   clarity: "頭の冴え",
   focus: "集中力",
-  energy: "エネルギー",
   mood: "気分",
-  motivation: "やる気",
   anxiety: "不安・緊張",
   decisionFatigue: "意思決定疲労",
   discomfort: "不調",
@@ -86,7 +82,7 @@ export interface SleepRecord {
   awakenings?: number;
 }
 
-export type MetricKey = "clarity" | "focus" | "energy" | "mood" | "sleep";
+export type MetricKey = "clarity" | "focus" | "mood" | "anxiety" | "decisionFatigue" | "discomfort" | "sleep";
 
 export interface Experiment {
   id: string;

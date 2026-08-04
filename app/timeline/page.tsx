@@ -137,8 +137,7 @@ function TimelineContent() {
           <div className="flex-1">
             <p className="font-medium text-gray-800">チェックイン</p>
             <p className="text-sm text-gray-600">
-              冴え{c.scores.clarity} / 集中{c.scores.focus} / エネルギー
-              {c.scores.energy} / 気分{c.scores.mood}
+              冴え{c.scores.clarity} / 集中{c.scores.focus} / 気分{c.scores.mood} / 不調{c.scores.discomfort}
             </p>
             {c.context?.note && (
               <p className="text-sm text-gray-500 mt-1">{c.context.note}</p>
