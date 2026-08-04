@@ -32,17 +32,35 @@ function average(values: number[]): number {
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
 }
 
+function rank(values: number[]): number[] {
+  const sorted = values.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v);
+  const ranks = new Array(values.length);
+  let i = 0;
+  while (i < sorted.length) {
+    let j = i;
+    while (j < sorted.length && sorted[j].v === sorted[i].v) j++;
+    const avgRank = (i + 1 + j) / 2;
+    for (let k = i; k < j; k++) {
+      ranks[sorted[k].i] = avgRank;
+    }
+    i = j;
+  }
+  return ranks;
+}
+
 function correlation(x: number[], y: number[]): number {
   const n = x.length;
   if (n === 0 || n !== y.length) return 0;
-  const mx = average(x);
-  const my = average(y);
+  const rx = rank(x);
+  const ry = rank(y);
+  const mx = average(rx);
+  const my = average(ry);
   let num = 0;
   let dx2 = 0;
   let dy2 = 0;
   for (let i = 0; i < n; i++) {
-    const dx = x[i] - mx;
-    const dy = y[i] - my;
+    const dx = rx[i] - mx;
+    const dy = ry[i] - my;
     num += dx * dy;
     dx2 += dx * dx;
     dy2 += dy * dy;
@@ -290,7 +308,7 @@ export default function InsightsPage() {
         <details className="text-sm text-gray-500 mb-3">
           <summary className="cursor-pointer hover:text-gray-700">計算方法</summary>
           <p className="mt-2 pl-4 text-xs leading-relaxed">
-            睡眠時間・睡眠の質と各スコアの間にピアソンの相関係数を計算し、絶対値が0.3を超える場合に「傾向がある」とみなしています。
+            睡眠時間・睡眠の質と各スコアの間にスピアマンの順位相関係数を計算し、絶対値が0.3を超える場合に「傾向がある」とみなしています。
           </p>
         </details>
         <ul className="space-y-2">
