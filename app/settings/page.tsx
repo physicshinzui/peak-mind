@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigation } from "../components/Navigation";
 import { SectionCard } from "../components/SectionCard";
 import { db } from "../lib/db";
-import { Download, Upload, Trash2 } from "lucide-react";
+import { Download, Upload, Trash2, FileSpreadsheet } from "lucide-react";
 
 export default function SettingsPage() {
   const [counts, setCounts] = useState({ checkIns: 0, events: 0, sleep: 0, experiments: 0 });
@@ -42,6 +42,76 @@ export default function SettingsPage() {
     a.download = `brain-condition-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const escapeCsv = (value: unknown): string => {
+    const str = String(value ?? "");
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const downloadCsv = (filename: string, rows: string[][]) => {
+    const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCsvCheckIns = async () => {
+    const rows = [
+      ["id", "timestamp", "type", "clarity", "focus", "mood", "anxiety", "decisionFatigue", "discomfort", "note"],
+      ...(await db.checkIns.toArray()).map((c) => [
+        c.id,
+        c.timestamp,
+        c.type,
+        String(c.scores.clarity),
+        String(c.scores.focus),
+        String(c.scores.mood),
+        String(c.scores.anxiety),
+        String(c.scores.decisionFatigue),
+        String(c.scores.discomfort),
+        c.context?.note || "",
+      ]),
+    ];
+    downloadCsv(`peak-mind-checkins-${new Date().toISOString().split("T")[0]}.csv`, rows);
+  };
+
+  const handleExportCsvEvents = async () => {
+    const rows = [
+      ["id", "timestamp", "type", "label", "amount", "unit", "intensity", "note"],
+      ...(await db.events.toArray()).map((e) => [
+        e.id,
+        e.timestamp,
+        e.type,
+        e.detail.label,
+        e.detail.amount?.toString() || "",
+        e.detail.unit || "",
+        e.detail.intensity?.toString() || "",
+        e.note || "",
+      ]),
+    ];
+    downloadCsv(`peak-mind-events-${new Date().toISOString().split("T")[0]}.csv`, rows);
+  };
+
+  const handleExportCsvSleep = async () => {
+    const rows = [
+      ["id", "date", "bedTime", "wakeTime", "quality", "awakenings"],
+      ...(await db.sleepRecords.toArray()).map((s) => [
+        s.id,
+        s.date,
+        s.bedTime,
+        s.wakeTime,
+        String(s.quality),
+        s.awakenings?.toString() || "",
+      ]),
+    ];
+    downloadCsv(`peak-mind-sleep-${new Date().toISOString().split("T")[0]}.csv`, rows);
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,6 +188,35 @@ export default function SettingsPage() {
           <Download size={18} />
           バックアップを保存
         </button>
+      </SectionCard>
+
+      <SectionCard title="CSVエクスポート" className="mt-4">
+        <p className="text-sm text-gray-600 mb-4">
+          スプレッドシートや他のツールで分析できるよう、各データをCSVで保存します。
+        </p>
+        <div className="space-y-2">
+          <button
+            onClick={handleExportCsvCheckIns}
+            className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold py-2.5 rounded-xl transition"
+          >
+            <FileSpreadsheet size={18} />
+            チェックインをCSVで保存
+          </button>
+          <button
+            onClick={handleExportCsvEvents}
+            className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold py-2.5 rounded-xl transition"
+          >
+            <FileSpreadsheet size={18} />
+            イベントをCSVで保存
+          </button>
+          <button
+            onClick={handleExportCsvSleep}
+            className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold py-2.5 rounded-xl transition"
+          >
+            <FileSpreadsheet size={18} />
+            睡眠記録をCSVで保存
+          </button>
+        </div>
       </SectionCard>
 
       <SectionCard title="インポート" className="mt-4">

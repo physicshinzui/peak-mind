@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { Navigation } from "../components/Navigation";
 import { SectionCard } from "../components/SectionCard";
-import { CheckIn, SleepRecord, LifeEvent, SCORE_LABELS } from "../types";
+import { CheckIn, SleepRecord, LifeEvent, EventType, SCORE_LABELS, EVENT_TYPE_LABELS } from "../types";
 import { db } from "../lib/db";
 import { format, parseISO, subDays } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -307,6 +307,12 @@ export default function InsightsPage() {
         title="条件付き平均：カフェイン"
         yesLabel="カフェインあり"
         noLabel="カフェインなし"
+      />
+
+      <CombinationAnalysisSection
+        checkIns={checkIns}
+        sleepRecords={sleepRecords}
+        events={events}
       />
 
       <HelpSection />
@@ -609,6 +615,282 @@ function EventConditionalSection({
               </p>
             </div>
           )}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+type Condition =
+  | { kind: "sleep"; operator: "gte" | "lt"; threshold: number }
+  | { kind: "event"; type: EventType; operator: "with" | "without" }
+  | { kind: "anxiety"; operator: "gte" | "lt"; threshold: number };
+
+interface CombinationAnalysisSectionProps {
+  checkIns: CheckIn[];
+  sleepRecords: SleepRecord[];
+  events: LifeEvent[];
+}
+
+function CombinationAnalysisSection({
+  checkIns,
+  sleepRecords,
+  events,
+}: CombinationAnalysisSectionProps) {
+  const [conditions, setConditions] = useState<Condition[]>([
+    { kind: "sleep", operator: "gte", threshold: 7 },
+  ]);
+  const [result, setResult] = useState<{
+    matched: number;
+    unmatched: number;
+    matchedScores: Record<string, number>;
+    unmatchedScores: Record<string, number>;
+  } | null>(null);
+
+  const scoreKeys = useMemo(() => Object.keys(SCORE_LABELS) as (keyof typeof SCORE_LABELS)[], []);
+
+  const evaluate = () => {
+    const sleepByDate = new Map<string, number>();
+    sleepRecords.forEach((s) => {
+      sleepByDate.set(s.date, calcSleepHours(s.bedTime, s.wakeTime));
+    });
+
+    const eventDatesByType = new Map<EventType, Set<string>>();
+    events.forEach((e) => {
+      const date = e.timestamp.split("T")[0];
+      if (!eventDatesByType.has(e.type)) eventDatesByType.set(e.type, new Set());
+      eventDatesByType.get(e.type)!.add(date);
+    });
+
+    const checkInsByDate = new Map<string, CheckIn[]>();
+    checkIns.forEach((c) => {
+      const date = c.timestamp.split("T")[0];
+      if (!checkInsByDate.has(date)) checkInsByDate.set(date, []);
+      checkInsByDate.get(date)!.push(c);
+    });
+
+    const allDates = new Set([
+      ...Array.from(sleepByDate.keys()),
+      ...Array.from(eventDatesByType.values()).flatMap((s) => Array.from(s)),
+      ...Array.from(checkInsByDate.keys()),
+    ]);
+
+    let matched = 0;
+    let unmatched = 0;
+    const matchedScoreValues: Record<string, number[]> = {};
+    const unmatchedScoreValues: Record<string, number[]> = {};
+    scoreKeys.forEach((key) => {
+      matchedScoreValues[key] = [];
+      unmatchedScoreValues[key] = [];
+    });
+
+    allDates.forEach((date) => {
+      const dayCheckIns = checkInsByDate.get(date) || [];
+      if (dayCheckIns.length === 0) return;
+
+      const ok = conditions.every((cond) => {
+        if (cond.kind === "sleep") {
+          const hours = sleepByDate.get(date);
+          if (hours === undefined) return false;
+          return cond.operator === "gte" ? hours >= cond.threshold : hours < cond.threshold;
+        }
+        if (cond.kind === "event") {
+          const has = eventDatesByType.get(cond.type)?.has(date) ?? false;
+          return cond.operator === "with" ? has : !has;
+        }
+        if (cond.kind === "anxiety") {
+          if (dayCheckIns.length === 0) return false;
+          const avg = average(dayCheckIns.map((c) => c.scores.anxiety));
+          return cond.operator === "gte" ? avg >= cond.threshold : avg < cond.threshold;
+        }
+        return false;
+      });
+
+      dayCheckIns.forEach((c) => {
+        scoreKeys.forEach((key) => {
+          if (ok) {
+            matchedScoreValues[key].push(c.scores[key]);
+          } else {
+            unmatchedScoreValues[key].push(c.scores[key]);
+          }
+        });
+      });
+
+      if (ok) matched++;
+      else unmatched++;
+    });
+
+    setResult({
+      matched,
+      unmatched,
+      matchedScores: Object.fromEntries(
+        scoreKeys.map((key) => [key, average(matchedScoreValues[key])])
+      ),
+      unmatchedScores: Object.fromEntries(
+        scoreKeys.map((key) => [key, average(unmatchedScoreValues[key])])
+      ),
+    });
+  };
+
+  const addCondition = () => {
+    setConditions((prev) => [...prev, { kind: "event", type: "exercise", operator: "with" }]);
+  };
+
+  const updateCondition = (index: number, next: Condition) => {
+    setConditions((prev) => prev.map((c, i) => (i === index ? next : c)));
+  };
+
+  const removeCondition = (index: number) => {
+    setConditions((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  return (
+    <SectionCard title="組み合わせ分析" className="mt-4">
+      <p className="text-sm text-gray-600 mb-3">
+        複数の条件を組み合わせて、Clarityなどのスコアを比較できます。
+      </p>
+      <div className="space-y-3">
+        {conditions.map((cond, i) => (
+          <div key={i} className="bg-gray-50 rounded-xl p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <select
+                value={cond.kind}
+                onChange={(e) => {
+                  const kind = e.target.value as Condition["kind"];
+                  if (kind === "sleep")
+                    updateCondition(i, { kind, operator: "gte", threshold: 7 });
+                  else if (kind === "event")
+                    updateCondition(i, { kind, type: "exercise", operator: "with" });
+                  else updateCondition(i, { kind, operator: "gte", threshold: 3 });
+                }}
+                className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white"
+              >
+                <option value="sleep">睡眠時間</option>
+                <option value="event">イベント</option>
+                <option value="anxiety">不安スコア平均</option>
+              </select>
+              {cond.kind === "sleep" && (
+                <>
+                  <select
+                    value={cond.operator}
+                    onChange={(e) =>
+                      updateCondition(i, { ...cond, operator: e.target.value as "gte" | "lt" })
+                    }
+                    className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white"
+                  >
+                    <option value="gte">≥</option>
+                    <option value="lt">&lt;</option>
+                  </select>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={cond.threshold}
+                    onChange={(e) =>
+                      updateCondition(i, { ...cond, threshold: parseFloat(e.target.value) || 0 })
+                    }
+                    className="w-20 text-sm border border-gray-300 rounded-lg px-2 py-1"
+                  />
+                  <span className="text-sm text-gray-600">時間</span>
+                </>
+              )}
+              {cond.kind === "event" && (
+                <>
+                  <select
+                    value={cond.type}
+                    onChange={(e) =>
+                      updateCondition(i, { ...cond, type: e.target.value as EventType })
+                    }
+                    className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white"
+                  >
+                    {Object.entries(EVENT_TYPE_LABELS).map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={cond.operator}
+                    onChange={(e) =>
+                      updateCondition(i, { ...cond, operator: e.target.value as "with" | "without" })
+                    }
+                    className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white"
+                  >
+                    <option value="with">あり</option>
+                    <option value="without">なし</option>
+                  </select>
+                </>
+              )}
+              {cond.kind === "anxiety" && (
+                <>
+                  <select
+                    value={cond.operator}
+                    onChange={(e) =>
+                      updateCondition(i, { ...cond, operator: e.target.value as "gte" | "lt" })
+                    }
+                    className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white"
+                  >
+                    <option value="gte">≥</option>
+                    <option value="lt">&lt;</option>
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    step="0.5"
+                    value={cond.threshold}
+                    onChange={(e) =>
+                      updateCondition(i, { ...cond, threshold: parseFloat(e.target.value) || 0 })
+                    }
+                    className="w-20 text-sm border border-gray-300 rounded-lg px-2 py-1"
+                  />
+                </>
+              )}
+              <button
+                onClick={() => removeCondition(i)}
+                className="ml-auto text-xs text-red-500 hover:text-red-700"
+              >
+                削除
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-3 mt-4">
+        <button
+          onClick={addCondition}
+          className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium py-2 rounded-lg transition"
+        >
+          条件を追加
+        </button>
+        <button
+          onClick={evaluate}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg transition"
+        >
+          計算
+        </button>
+      </div>
+
+      {result && (
+        <div className="mt-4 space-y-2">
+          <div className="grid grid-cols-3 gap-2 text-sm font-medium text-gray-500 text-center">
+            <span></span>
+            <span>条件を満たす日<br />({result.matched}日)</span>
+            <span>満たさない日<br />({result.unmatched}日)</span>
+          </div>
+          {scoreKeys.map((key) => (
+            <div
+              key={key}
+              className="grid grid-cols-3 gap-2 items-center text-sm text-center py-2 border-b border-gray-100 last:border-0"
+            >
+              <span className="text-left font-medium text-gray-700">{SCORE_LABELS[key]}</span>
+              <span className="font-semibold text-gray-800">
+                {result.matchedScores[key].toFixed(2)}
+              </span>
+              <span className="font-semibold text-gray-800">
+                {result.unmatchedScores[key].toFixed(2)}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </SectionCard>

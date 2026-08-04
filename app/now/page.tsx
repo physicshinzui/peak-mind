@@ -38,8 +38,16 @@ export default function NowPage() {
   const [todayLog, setTodayLog] = useState<{ done: boolean } | null>(null);
   const [lastCheckIn, setLastCheckIn] = useState<CheckIn | null>(null);
   const [hints, setHints] = useState<Hint[]>([]);
+  const [hintRange, setHintRange] = useState<7 | 14 | 30 | 90>(7);
 
   const today = format(new Date(), "yyyy-MM-dd");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("peak-mind-hint-range");
+    if (saved === "7" || saved === "14" || saved === "30" || saved === "90") {
+      setHintRange(Number(saved) as typeof hintRange);
+    }
+  }, []);
 
   const load = async () => {
     const experiments = await db.experiments
@@ -70,9 +78,9 @@ export default function NowPage() {
       db.checkIns.where("timestamp").between(todayStart, todayEnd).toArray(),
       db.events.where("timestamp").between(todayStart, todayEnd).toArray(),
       db.sleepRecords.where("date").equals(yesterday).first(),
-      db.checkIns.where("timestamp").above(format(subDays(new Date(), 7), "yyyy-MM-dd")).toArray(),
-      db.events.where("timestamp").above(format(subDays(new Date(), 7), "yyyy-MM-dd")).toArray(),
-      db.sleepRecords.where("date").above(format(subDays(new Date(), 7), "yyyy-MM-dd")).toArray(),
+      db.checkIns.where("timestamp").above(format(subDays(new Date(), hintRange), "yyyy-MM-dd")).toArray(),
+      db.events.where("timestamp").above(format(subDays(new Date(), hintRange), "yyyy-MM-dd")).toArray(),
+      db.sleepRecords.where("date").above(format(subDays(new Date(), hintRange), "yyyy-MM-dd")).toArray(),
     ]);
 
     const hintList = generateHints({
@@ -89,7 +97,7 @@ export default function NowPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [today]);
+  }, [today, hintRange]);
 
   const saveCheckIn = async () => {
     if (!selectedType) return;
@@ -163,8 +171,25 @@ export default function NowPage() {
         </div>
       </SectionCard>
 
-      {hints.length > 0 && (
+      {(hints.length > 0 || hintRange !== 7) && (
         <SectionCard title="今日のヒント" className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-gray-500">ヒントの元にする期間</p>
+            <select
+              value={hintRange}
+              onChange={(e) => {
+                const value = Number(e.target.value) as typeof hintRange;
+                setHintRange(value);
+                localStorage.setItem("peak-mind-hint-range", String(value));
+              }}
+              className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white"
+            >
+              <option value={7}>過去7日間</option>
+              <option value={14}>過去14日間</option>
+              <option value={30}>過去30日間</option>
+              <option value={90}>過去90日間</option>
+            </select>
+          </div>
           <div className="space-y-3">
             {hints.map((hint, i) => (
               <div key={i} className="flex items-start gap-3 bg-amber-50 rounded-xl p-4">

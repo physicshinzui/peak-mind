@@ -48,6 +48,180 @@ const EVENT_ICONS: Record<EventType, typeof Utensils> = {
   discomfort: Thermometer,
 };
 
+interface EventFieldsProps {
+  type: EventType;
+  label: string;
+  setLabel: (value: string) => void;
+  amount: string;
+  setAmount: (value: string) => void;
+  unit: string;
+  setUnit: (value: string) => void;
+  intensity: Intensity1To3;
+  setIntensity: (value: Intensity1To3) => void;
+}
+
+function EventFields({
+  type,
+  label,
+  setLabel,
+  amount,
+  setAmount,
+  unit,
+  setUnit,
+  intensity,
+  setIntensity,
+}: EventFieldsProps) {
+  const config = getEventFieldConfig(type);
+  return (
+    <>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {config.label}
+        </label>
+        <input
+          type="text"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder={config.labelPlaceholder}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            量
+          </label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            単位
+          </label>
+          <input
+            type="text"
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
+            placeholder={config.unitPlaceholder}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+        </div>
+      </div>
+      {config.showIntensity && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            強度
+          </label>
+          <select
+            value={intensity}
+            onChange={(e) =>
+              setIntensity(parseInt(e.target.value) as Intensity1To3)
+            }
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          >
+            <option value={1}>軽い</option>
+            <option value={2}>普通</option>
+            <option value={3}>激しい</option>
+          </select>
+        </div>
+      )}
+    </>
+  );
+}
+
+function getEventFieldConfig(type: EventType) {
+  switch (type) {
+    case "meal":
+      return {
+        label: "内容",
+        labelPlaceholder: "例：鮭定食",
+        unitPlaceholder: "kcalまたは任意",
+        showIntensity: false,
+      };
+    case "caffeine":
+      return {
+        label: "内容",
+        labelPlaceholder: "例：コーヒー",
+        unitPlaceholder: "mg",
+        showIntensity: false,
+      };
+    case "water":
+      return {
+        label: "内容",
+        labelPlaceholder: "例：水",
+        unitPlaceholder: "ml",
+        showIntensity: false,
+      };
+    case "exercise":
+      return {
+        label: "種類",
+        labelPlaceholder: "例：ランニング",
+        unitPlaceholder: "分",
+        showIntensity: true,
+      };
+    case "supplement":
+      return {
+        label: "サプリ名",
+        labelPlaceholder: "例：ビタミンD",
+        unitPlaceholder: "mg/μg",
+        showIntensity: false,
+      };
+    case "break":
+      return {
+        label: "内容",
+        labelPlaceholder: "例：散歩",
+        unitPlaceholder: "分",
+        showIntensity: false,
+      };
+    case "nap":
+      return {
+        label: "内容",
+        labelPlaceholder: "例：昼寝",
+        unitPlaceholder: "分",
+        showIntensity: false,
+      };
+    case "alcohol":
+      return {
+        label: "種類",
+        labelPlaceholder: "例：ビール",
+        unitPlaceholder: "杯/ml",
+        showIntensity: false,
+      };
+    case "work":
+      return {
+        label: "内容",
+        labelPlaceholder: "例：プログラミング",
+        unitPlaceholder: "時間",
+        showIntensity: false,
+      };
+    case "discomfort":
+      return {
+        label: "症状",
+        labelPlaceholder: "例：頭痛",
+        unitPlaceholder: "任意",
+        showIntensity: true,
+      };
+    case "sleep":
+      return {
+        label: "内容",
+        labelPlaceholder: "例：就寝",
+        unitPlaceholder: "任意",
+        showIntensity: false,
+      };
+    default:
+      return {
+        label: "内容",
+        labelPlaceholder: "内容",
+        unitPlaceholder: "単位",
+        showIntensity: false,
+      };
+  }
+}
+
 function TimelineContent() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("add") || "list";
@@ -107,7 +281,10 @@ function TimelineContent() {
         label: eventLabel,
         amount: eventAmount ? parseFloat(eventAmount) : undefined,
         unit: eventUnit || undefined,
-        intensity: eventType === "exercise" ? eventIntensity : undefined,
+        intensity:
+          eventType === "exercise" || eventType === "discomfort"
+            ? eventIntensity
+            : undefined,
       },
       note: eventNote || undefined,
     };
@@ -194,7 +371,10 @@ function TimelineContent() {
           label: editEventLabel,
           amount: editEventAmount ? parseFloat(editEventAmount) : undefined,
           unit: editEventUnit || undefined,
-          intensity: editEventType === "exercise" ? editEventIntensity : undefined,
+          intensity:
+            editEventType === "exercise" || editEventType === "discomfort"
+              ? editEventIntensity
+              : undefined,
         },
         note: editEventNote || undefined,
       });
@@ -354,40 +534,17 @@ function TimelineContent() {
               <option key={key} value={key}>{label}</option>
             ))}
           </select>
-          <input
-            type="text"
-            value={editEventLabel}
-            onChange={(e) => setEditEventLabel(e.target.value)}
-            placeholder="内容"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          <EventFields
+            type={editEventType}
+            label={editEventLabel}
+            setLabel={setEditEventLabel}
+            amount={editEventAmount}
+            setAmount={setEditEventAmount}
+            unit={editEventUnit}
+            setUnit={setEditEventUnit}
+            intensity={editEventIntensity}
+            setIntensity={setEditEventIntensity}
           />
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="number"
-              value={editEventAmount}
-              onChange={(e) => setEditEventAmount(e.target.value)}
-              placeholder="量"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2"
-            />
-            <input
-              type="text"
-              value={editEventUnit}
-              onChange={(e) => setEditEventUnit(e.target.value)}
-              placeholder="単位"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2"
-            />
-          </div>
-          {editEventType === "exercise" && (
-            <select
-              value={editEventIntensity}
-              onChange={(e) => setEditEventIntensity(parseInt(e.target.value) as Intensity1To3)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2"
-            >
-              <option value={1}>軽い</option>
-              <option value={2}>普通</option>
-              <option value={3}>激しい</option>
-            </select>
-          )}
           <input
             type="text"
             value={editEventNote}
@@ -550,61 +707,17 @@ function TimelineContent() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                内容
-              </label>
-              <input
-                type="text"
-                value={eventLabel}
-                onChange={(e) => setEventLabel(e.target.value)}
-                placeholder={eventType === "meal" ? "例：鮭定食" : "例：コーヒー1杯"}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  量
-                </label>
-                <input
-                  type="number"
-                  value={eventAmount}
-                  onChange={(e) => setEventAmount(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  単位
-                </label>
-                <input
-                  type="text"
-                  value={eventUnit}
-                  onChange={(e) => setEventUnit(e.target.value)}
-                  placeholder="杯、分、g"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                />
-              </div>
-            </div>
-            {eventType === "exercise" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  強度
-                </label>
-                <select
-                  value={eventIntensity}
-                  onChange={(e) =>
-                    setEventIntensity(parseInt(e.target.value) as Intensity1To3)
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                >
-                  <option value={1}>軽い</option>
-                  <option value={2}>普通</option>
-                  <option value={3}>激しい</option>
-                </select>
-              </div>
-            )}
+            <EventFields
+              type={eventType}
+              label={eventLabel}
+              setLabel={setEventLabel}
+              amount={eventAmount}
+              setAmount={setEventAmount}
+              unit={eventUnit}
+              setUnit={setEventUnit}
+              intensity={eventIntensity}
+              setIntensity={setEventIntensity}
+            />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 メモ（任意）
