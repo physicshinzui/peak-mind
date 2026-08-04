@@ -59,6 +59,8 @@ export default function InsightsPage() {
   const [events, setEvents] = useState<LifeEvent[]>([]);
   const [range, setRange] = useState<7 | 14 | 30 | 90 | 180 | 365>(7);
   const [sleepThreshold, setSleepThreshold] = useState(7);
+  const [corrX, setCorrX] = useState<"sleepHours" | "sleepQuality">("sleepHours");
+  const [corrY, setCorrY] = useState<keyof typeof SCORE_LABELS>("clarity");
 
   useEffect(() => {
     const load = async () => {
@@ -147,10 +149,18 @@ export default function InsightsPage() {
       avgSleepQuality: average(sleepQuality),
       ...scoreStats,
       sleepClarity: correlation(sleepHours, recentCheckIns.map((c) => c.scores.clarity)),
-      sleepFocus: correlation(sleepHours, recentCheckIns.map((c) => c.scores.focus)),
-      sleepQualityClarity: correlation(sleepQuality, recentCheckIns.map((c) => c.scores.clarity)),
     };
   }, [recentCheckIns, recentSleep, scoreKeys]);
+
+  const customCorrelation = useMemo(() => {
+    if (recentCheckIns.length < 3 || recentSleep.length < 3) return null;
+    const x =
+      corrX === "sleepHours"
+        ? recentSleep.map((s) => calcSleepHours(s.bedTime, s.wakeTime))
+        : recentSleep.map((s) => s.quality);
+    const y = recentCheckIns.map((c) => c.scores[corrY]);
+    return correlation(x, y);
+  }, [recentCheckIns, recentSleep, corrX, corrY]);
 
   const insights = useMemo(() => {
     const list: string[] = [];
@@ -161,16 +171,6 @@ export default function InsightsPage() {
     if (Math.abs(stats.sleepClarity) > 0.3) {
       list.push(
         `睡眠時間と頭の冴えは${stats.sleepClarity > 0 ? "正" : "負"}の相関（${stats.sleepClarity.toFixed(2)}）があります。`
-      );
-    }
-    if (Math.abs(stats.sleepFocus) > 0.3) {
-      list.push(
-        `睡眠時間と集中力は${stats.sleepFocus > 0 ? "正" : "負"}の相関（${stats.sleepFocus.toFixed(2)}）があります。`
-      );
-    }
-    if (Math.abs(stats.sleepQualityClarity) > 0.3) {
-      list.push(
-        `睡眠の質と頭の冴えは${stats.sleepQualityClarity > 0 ? "正" : "負"}の相関（${stats.sleepQualityClarity.toFixed(2)}）があります。`
       );
     }
     if (list.length === 0) {
@@ -300,6 +300,43 @@ export default function InsightsPage() {
             </li>
           ))}
         </ul>
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <p className="text-sm font-medium text-gray-700 mb-2">相関を調べる</p>
+          <div className="flex items-center gap-2 mb-3">
+            <select
+              value={corrX}
+              onChange={(e) => setCorrX(e.target.value as typeof corrX)}
+              className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white"
+            >
+              <option value="sleepHours">睡眠時間</option>
+              <option value="sleepQuality">睡眠の質</option>
+            </select>
+            <span className="text-sm text-gray-500">と</span>
+            <select
+              value={corrY}
+              onChange={(e) => setCorrY(e.target.value as typeof corrY)}
+              className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white"
+            >
+              {scoreKeys.map((key) => (
+                <option key={key} value={key}>
+                  {SCORE_LABELS[key]}
+                </option>
+              ))}
+            </select>
+          </div>
+          {customCorrelation === null ? (
+            <p className="text-sm text-gray-500">データが不足しています。</p>
+          ) : (
+            <p className="text-sm text-gray-700">
+              {corrX === "sleepHours" ? "睡眠時間" : "睡眠の質"}と{SCORE_LABELS[corrY]}の相関係数は{" "}
+              <span className="font-bold text-blue-700">{customCorrelation.toFixed(2)}</span>
+              {" "}です。
+              {Math.abs(customCorrelation) > 0.3
+                ? "傾向があると言えます。"
+                : "明確な傾向は見られません。"}
+            </p>
+          )}
+        </div>
       </SectionCard>
 
       <ConditionalAverageSection
