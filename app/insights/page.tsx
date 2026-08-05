@@ -233,7 +233,7 @@ export default function InsightsPage() {
             {stats.avgSleepQuality.toFixed(1)}
           </p>
         </div>
-        {scoreKeys.slice(0, 4).map((key) => (
+        {scoreKeys.map((key) => (
           <div key={key} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <p className="text-xs text-gray-500">{SCORE_LABELS[key]}</p>
             <p className="text-2xl font-bold text-gray-800">

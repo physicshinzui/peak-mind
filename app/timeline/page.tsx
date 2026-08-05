@@ -250,6 +250,7 @@ function TimelineContent() {
     anxiety: 3,
     decisionFatigue: 3,
     discomfort: 3,
+    voiceEase: 3,
   });
   const [editNote, setEditNote] = useState("");
   const [editEventType, setEditEventType] = useState<EventType>("meal");

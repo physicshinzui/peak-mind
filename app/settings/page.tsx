@@ -65,7 +65,7 @@ export default function SettingsPage() {
 
   const handleExportCsvCheckIns = async () => {
     const rows = [
-      ["id", "timestamp", "type", "clarity", "focus", "mood", "anxiety", "decisionFatigue", "discomfort", "note"],
+      ["id", "timestamp", "type", "clarity", "focus", "mood", "anxiety", "decisionFatigue", "discomfort", "voiceEase", "note"],
       ...(await db.checkIns.toArray()).map((c) => [
         c.id,
         c.timestamp,
@@ -76,6 +76,7 @@ export default function SettingsPage() {
         String(c.scores.anxiety),
         String(c.scores.decisionFatigue),
         String(c.scores.discomfort),
+        String(c.scores.voiceEase),
         c.context?.note || "",
       ]),
     ];

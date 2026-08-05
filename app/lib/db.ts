@@ -26,6 +26,22 @@ class BrainConditionDB extends Dexie {
       experimentLogs: "id, [experimentId+date], experimentId, date",
       cognitiveTests: "id, timestamp, type",
     });
+    this.version(2)
+      .stores({
+        checkIns: "id, timestamp, type",
+        events: "id, timestamp, type",
+        sleepRecords: "id, date",
+        experiments: "id, startedAt, status",
+        experimentLogs: "id, [experimentId+date], experimentId, date",
+        cognitiveTests: "id, timestamp, type",
+      })
+      .upgrade(async (tx) => {
+        await tx.table("checkIns").toCollection().modify((checkIn) => {
+          if (checkIn.scores.voiceEase === undefined) {
+            checkIn.scores.voiceEase = 3;
+          }
+        });
+      });
   }
 }
 

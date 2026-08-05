@@ -10,6 +10,7 @@ export interface Scores {
   anxiety: Score1To5;
   decisionFatigue: Score1To5;
   discomfort: Score1To5;
+  voiceEase: Score1To5;
 }
 
 export const SCORE_LABELS: Record<keyof Scores, string> = {
@@ -19,6 +20,7 @@ export const SCORE_LABELS: Record<keyof Scores, string> = {
   anxiety: "不安・緊張",
   decisionFatigue: "意思決定疲労",
   discomfort: "不調",
+  voiceEase: "声の出しやすさ",
 };
 
 export interface CheckIn {
