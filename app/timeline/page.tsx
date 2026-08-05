@@ -80,13 +80,27 @@ function EventFields({
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {config.label}
         </label>
-        <input
-          type="text"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder={config.labelPlaceholder}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2"
-        />
+        {config.options ? (
+          <select
+            value={label || config.options[0]}
+            onChange={(e) => setLabel(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          >
+            {config.options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder={config.labelPlaceholder}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -220,6 +234,7 @@ function getEventFieldConfig(type: EventType) {
         labelPlaceholder: "例：普通",
         unitPlaceholder: "回",
         showIntensity: false,
+        options: ["快便", "普通", "便秘気味", "下痢気味", "その他"],
       };
     default:
       return {
