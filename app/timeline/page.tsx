@@ -149,6 +149,20 @@ function EventFields({
   );
 }
 
+function applyEventDefaults(
+  type: EventType,
+  setLabel: (value: string) => void,
+  setUnit: (value: string) => void
+) {
+  const config = getEventFieldConfig(type);
+  if (config.options) {
+    setLabel(config.options[0]);
+  } else {
+    setLabel("");
+  }
+  setUnit(config.defaultUnit);
+}
+
 function getEventFieldConfig(type: EventType) {
   switch (type) {
     case "meal":
@@ -156,6 +170,7 @@ function getEventFieldConfig(type: EventType) {
         label: "内容",
         labelPlaceholder: "例：鮭定食",
         unitPlaceholder: "kcalまたは任意",
+        defaultUnit: "",
         showIntensity: false,
       };
     case "caffeine":
@@ -163,6 +178,7 @@ function getEventFieldConfig(type: EventType) {
         label: "内容",
         labelPlaceholder: "例：コーヒー",
         unitPlaceholder: "mg",
+        defaultUnit: "mg",
         showIntensity: false,
       };
     case "water":
@@ -170,6 +186,7 @@ function getEventFieldConfig(type: EventType) {
         label: "内容",
         labelPlaceholder: "例：水",
         unitPlaceholder: "ml",
+        defaultUnit: "ml",
         showIntensity: false,
       };
     case "exercise":
@@ -177,6 +194,7 @@ function getEventFieldConfig(type: EventType) {
         label: "種類",
         labelPlaceholder: "例：ランニング",
         unitPlaceholder: "分",
+        defaultUnit: "分",
         showIntensity: true,
       };
     case "supplement":
@@ -184,6 +202,7 @@ function getEventFieldConfig(type: EventType) {
         label: "サプリ名",
         labelPlaceholder: "例：ビタミンD",
         unitPlaceholder: "mg/μg",
+        defaultUnit: "mg",
         showIntensity: false,
       };
     case "break":
@@ -191,6 +210,7 @@ function getEventFieldConfig(type: EventType) {
         label: "内容",
         labelPlaceholder: "例：散歩",
         unitPlaceholder: "分",
+        defaultUnit: "分",
         showIntensity: false,
       };
     case "nap":
@@ -198,6 +218,7 @@ function getEventFieldConfig(type: EventType) {
         label: "内容",
         labelPlaceholder: "例：昼寝",
         unitPlaceholder: "分",
+        defaultUnit: "分",
         showIntensity: false,
       };
     case "alcohol":
@@ -205,6 +226,7 @@ function getEventFieldConfig(type: EventType) {
         label: "種類",
         labelPlaceholder: "例：ビール",
         unitPlaceholder: "杯/ml",
+        defaultUnit: "杯",
         showIntensity: false,
       };
     case "work":
@@ -212,6 +234,7 @@ function getEventFieldConfig(type: EventType) {
         label: "内容",
         labelPlaceholder: "例：プログラミング",
         unitPlaceholder: "時間",
+        defaultUnit: "時間",
         showIntensity: false,
       };
     case "discomfort":
@@ -219,6 +242,7 @@ function getEventFieldConfig(type: EventType) {
         label: "症状",
         labelPlaceholder: "例：頭痛",
         unitPlaceholder: "任意",
+        defaultUnit: "",
         showIntensity: true,
       };
     case "sleep":
@@ -226,6 +250,7 @@ function getEventFieldConfig(type: EventType) {
         label: "内容",
         labelPlaceholder: "例：就寝",
         unitPlaceholder: "任意",
+        defaultUnit: "",
         showIntensity: false,
       };
     case "bowel":
@@ -233,6 +258,7 @@ function getEventFieldConfig(type: EventType) {
         label: "状態",
         labelPlaceholder: "例：普通",
         unitPlaceholder: "回",
+        defaultUnit: "回",
         showIntensity: false,
         options: ["快便", "普通", "便秘気味", "下痢気味", "その他"],
       };
@@ -241,6 +267,7 @@ function getEventFieldConfig(type: EventType) {
         label: "内容",
         labelPlaceholder: "内容",
         unitPlaceholder: "単位",
+        defaultUnit: "",
         showIntensity: false,
       };
   }
@@ -559,7 +586,11 @@ function TimelineContent() {
           </div>
           <select
             value={editEventType}
-            onChange={(e) => setEditEventType(e.target.value as EventType)}
+            onChange={(e) => {
+              const next = e.target.value as EventType;
+              setEditEventType(next);
+              applyEventDefaults(next, setEditEventLabel, setEditEventUnit);
+            }}
             className="w-full rounded-lg border border-gray-300 px-3 py-2"
           >
             {Object.entries(EVENT_TYPE_LABELS).map(([key, label]) => (
@@ -738,7 +769,11 @@ function TimelineContent() {
               </label>
               <select
                 value={eventType}
-                onChange={(e) => setEventType(e.target.value as EventType)}
+                onChange={(e) => {
+                  const next = e.target.value as EventType;
+                  setEventType(next);
+                  applyEventDefaults(next, setEventLabel, setEventUnit);
+                }}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2"
               >
                 {Object.entries(EVENT_TYPE_LABELS).map(([key, label]) => (
