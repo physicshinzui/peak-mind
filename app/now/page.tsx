@@ -5,19 +5,12 @@ import { useRouter } from "next/navigation";
 import { Navigation } from "../components/Navigation";
 import { SectionCard } from "../components/SectionCard";
 import { ScoreInput } from "../components/ScoreInput";
-import { CheckIn, CheckInType, Scores, Experiment } from "../types";
+import { CheckIn, Scores, Experiment } from "../types";
 import { db, generateId } from "../lib/db";
 import { generateHints, Hint } from "../lib/hints";
 import { format, subDays } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Sun, Coffee, Briefcase, Moon, FlaskConical, Lightbulb } from "lucide-react";
-
-const CHECK_IN_TYPES: { type: CheckInType; label: string; icon: typeof Sun }[] = [
-  { type: "morning", label: "朝", icon: Sun },
-  { type: "noon", label: "昼", icon: Coffee },
-  { type: "evening", label: "夕方", icon: Briefcase },
-  { type: "night", label: "夜", icon: Moon },
-];
+import { FlaskConical, Lightbulb } from "lucide-react";
 
 const DEFAULT_SCORES: Scores = {
   clarity: 3,
@@ -31,7 +24,6 @@ const DEFAULT_SCORES: Scores = {
 
 export default function NowPage() {
   const router = useRouter();
-  const [selectedType, setSelectedType] = useState<CheckInType | null>(null);
   const [scores, setScores] = useState<Scores>(DEFAULT_SCORES);
   const [note, setNote] = useState("");
   const [saved, setSaved] = useState(false);
@@ -40,6 +32,7 @@ export default function NowPage() {
   const [lastCheckIn, setLastCheckIn] = useState<CheckIn | null>(null);
   const [hints, setHints] = useState<Hint[]>([]);
   const [hintRange, setHintRange] = useState<7 | 14 | 30 | 90>(7);
+  const [isEditing, setIsEditing] = useState(false);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -101,17 +94,16 @@ export default function NowPage() {
   }, [today, hintRange]);
 
   const saveCheckIn = async () => {
-    if (!selectedType) return;
     const checkIn: CheckIn = {
       id: generateId(),
       timestamp: new Date().toISOString(),
-      type: selectedType,
+      type: "ad-hoc",
       scores,
       context: { note: note || undefined },
     };
     await db.checkIns.add(checkIn);
     setSaved(true);
-    setSelectedType(null);
+    setIsEditing(false);
     setScores(DEFAULT_SCORES);
     setNote("");
     load();
@@ -231,37 +223,17 @@ export default function NowPage() {
 
       <SectionCard title="チェックイン">
         <p className="text-sm text-gray-600 mb-4">
-          今の状態を素早く記録しましょう。
+          1日1回、今の状態を記録しましょう。
         </p>
-        {!selectedType ? (
-          <div className="grid grid-cols-2 gap-3">
-            {CHECK_IN_TYPES.map(({ type, label, icon: Icon }) => (
-              <button
-                key={type}
-                onClick={() => setSelectedType(type)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 transition"
-              >
-                <Icon size={24} />
-                <span className="font-medium">{label}</span>
-              </button>
-            ))}
-          </div>
+        {!isEditing ? (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="w-full p-4 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium transition"
+          >
+            今日の調子を記録する
+          </button>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-gray-700">
-                {
-                  CHECK_IN_TYPES.find((c) => c.type === selectedType)?.label
-                }
-                の記録
-              </span>
-              <button
-                onClick={() => setSelectedType(null)}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                キャンセル
-              </button>
-            </div>
             <ScoreInput scores={scores} onChange={setScores} />
             <input
               type="text"
