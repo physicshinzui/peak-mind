@@ -29,6 +29,7 @@ import {
   Armchair,
   BedSingle,
   Thermometer,
+  CircleDot,
   Trash2,
   Pencil,
   X,
@@ -46,6 +47,7 @@ const EVENT_ICONS: Record<EventType, typeof Utensils> = {
   work: Briefcase,
   sleep: Moon,
   discomfort: Thermometer,
+  bowel: CircleDot,
 };
 
 interface EventFieldsProps {
@@ -210,6 +212,13 @@ function getEventFieldConfig(type: EventType) {
         label: "内容",
         labelPlaceholder: "例：就寝",
         unitPlaceholder: "任意",
+        showIntensity: false,
+      };
+    case "bowel":
+      return {
+        label: "状態",
+        labelPlaceholder: "例：普通",
+        unitPlaceholder: "回",
         showIntensity: false,
       };
     default:

@@ -46,7 +46,8 @@ export type EventType =
   | "alcohol"
   | "work"
   | "sleep"
-  | "discomfort";
+  | "discomfort"
+  | "bowel";
 
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   meal: "食事",
@@ -60,6 +61,7 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   work: "作業",
   sleep: "睡眠",
   discomfort: "不調",
+  bowel: "便通",
 };
 
 export interface LifeEvent {
