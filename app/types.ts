@@ -73,6 +73,7 @@ export interface LifeEvent {
     amount?: number;
     unit?: string;
     intensity?: Intensity1To3;
+    medicine?: string;
   };
   note?: string;
 }

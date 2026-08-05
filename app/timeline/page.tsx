@@ -259,6 +259,7 @@ function TimelineContent() {
   const [eventAmount, setEventAmount] = useState("");
   const [eventUnit, setEventUnit] = useState("");
   const [eventIntensity, setEventIntensity] = useState<Intensity1To3>(2);
+  const [eventMedicine, setEventMedicine] = useState("");
   const [eventNote, setEventNote] = useState("");
 
   const [sleepDate, setSleepDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -282,6 +283,7 @@ function TimelineContent() {
   const [editEventAmount, setEditEventAmount] = useState("");
   const [editEventUnit, setEditEventUnit] = useState("");
   const [editEventIntensity, setEditEventIntensity] = useState<Intensity1To3>(2);
+  const [editEventMedicine, setEditEventMedicine] = useState("");
   const [editEventNote, setEditEventNote] = useState("");
   const [editSleepDate, setEditSleepDate] = useState("");
   const [editBedTime, setEditBedTime] = useState("");
@@ -310,6 +312,7 @@ function TimelineContent() {
           eventType === "exercise" || eventType === "discomfort"
             ? eventIntensity
             : undefined,
+        medicine: eventType === "bowel" ? eventMedicine || undefined : undefined,
       },
       note: eventNote || undefined,
     };
@@ -325,6 +328,7 @@ function TimelineContent() {
     setEventAmount("");
     setEventUnit("");
     setEventIntensity(2);
+    setEventMedicine("");
     setEventNote("");
   };
 
@@ -366,6 +370,7 @@ function TimelineContent() {
         setEditEventAmount(e.detail.amount?.toString() || "");
         setEditEventUnit(e.detail.unit || "");
         setEditEventIntensity(e.detail.intensity || 2);
+        setEditEventMedicine(e.detail.medicine || "");
         setEditEventNote(e.note || "");
       }
     } else if (kind === "sleep") {
@@ -400,6 +405,7 @@ function TimelineContent() {
             editEventType === "exercise" || editEventType === "discomfort"
               ? editEventIntensity
               : undefined,
+          medicine: editEventType === "bowel" ? editEventMedicine || undefined : undefined,
         },
         note: editEventNote || undefined,
       });
@@ -457,6 +463,7 @@ function TimelineContent() {
               {e.detail.label}
               {e.detail.amount ? ` (${e.detail.amount}${e.detail.unit || ""})` : ""}
               {e.detail.intensity ? ` / 強度${e.detail.intensity}` : ""}
+              {e.detail.medicine ? ` / 薬：${e.detail.medicine}` : ""}
             </p>
             {e.note && <p className="text-sm text-gray-500 mt-1">{e.note}</p>}
           </div>
@@ -570,6 +577,15 @@ function TimelineContent() {
             intensity={editEventIntensity}
             setIntensity={setEditEventIntensity}
           />
+          {editEventType === "bowel" && (
+            <input
+              type="text"
+              value={editEventMedicine}
+              onChange={(e) => setEditEventMedicine(e.target.value)}
+              placeholder="使用薬（任意）"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          )}
           <input
             type="text"
             value={editEventNote}
@@ -743,6 +759,20 @@ function TimelineContent() {
               intensity={eventIntensity}
               setIntensity={setEventIntensity}
             />
+            {eventType === "bowel" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  使用薬（任意）
+                </label>
+                <input
+                  type="text"
+                  value={eventMedicine}
+                  onChange={(e) => setEventMedicine(e.target.value)}
+                  placeholder="例：便秘薬"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 メモ（任意）

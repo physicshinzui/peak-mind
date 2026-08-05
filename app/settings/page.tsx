@@ -85,7 +85,7 @@ export default function SettingsPage() {
 
   const handleExportCsvEvents = async () => {
     const rows = [
-      ["id", "timestamp", "type", "label", "amount", "unit", "intensity", "note"],
+      ["id", "timestamp", "type", "label", "amount", "unit", "intensity", "medicine", "note"],
       ...(await db.events.toArray()).map((e) => [
         e.id,
         e.timestamp,
@@ -94,6 +94,7 @@ export default function SettingsPage() {
         e.detail.amount?.toString() || "",
         e.detail.unit || "",
         e.detail.intensity?.toString() || "",
+        e.detail.medicine || "",
         e.note || "",
       ]),
     ];
