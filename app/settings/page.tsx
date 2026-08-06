@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigation } from "../components/Navigation";
 import { SectionCard } from "../components/SectionCard";
 import { db } from "../lib/db";
+import { localDateKey } from "../lib/dates";
 import { Download, Upload, Trash2, FileSpreadsheet } from "lucide-react";
 
 export default function SettingsPage() {
@@ -39,7 +40,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `brain-condition-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `brain-condition-${localDateKey(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -80,7 +81,7 @@ export default function SettingsPage() {
         c.context?.note || "",
       ]),
     ];
-    downloadCsv(`peak-mind-checkins-${new Date().toISOString().split("T")[0]}.csv`, rows);
+    downloadCsv(`peak-mind-checkins-${localDateKey(new Date())}.csv`, rows);
   };
 
   const handleExportCsvEvents = async () => {
@@ -98,7 +99,7 @@ export default function SettingsPage() {
         e.note || "",
       ]),
     ];
-    downloadCsv(`peak-mind-events-${new Date().toISOString().split("T")[0]}.csv`, rows);
+    downloadCsv(`peak-mind-events-${localDateKey(new Date())}.csv`, rows);
   };
 
   const handleExportCsvSleep = async () => {
@@ -113,7 +114,7 @@ export default function SettingsPage() {
         s.awakenings?.toString() || "",
       ]),
     ];
-    downloadCsv(`peak-mind-sleep-${new Date().toISOString().split("T")[0]}.csv`, rows);
+    downloadCsv(`peak-mind-sleep-${localDateKey(new Date())}.csv`, rows);
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {

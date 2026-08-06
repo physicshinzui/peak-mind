@@ -8,6 +8,7 @@ import { ScoreInput } from "../components/ScoreInput";
 import { CheckIn, Scores, Experiment } from "../types";
 import { db, generateId } from "../lib/db";
 import { generateHints, Hint } from "../lib/hints";
+import { localDateKey, localDayIsoRange, localRangeStart } from "../lib/dates";
 import { format, subDays } from "date-fns";
 import { ja } from "date-fns/locale";
 import { FlaskConical, Lightbulb } from "lucide-react";
@@ -34,7 +35,7 @@ export default function NowPage() {
   const [hintRange, setHintRange] = useState<7 | 14 | 30 | 90>(7);
   const [isEditing, setIsEditing] = useState(false);
 
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = localDateKey(new Date());
 
   useEffect(() => {
     const saved = localStorage.getItem("peak-mind-hint-range");
@@ -64,17 +65,19 @@ export default function NowPage() {
       .first();
     setLastCheckIn(last || null);
 
-    const todayStart = `${today}T00:00:00.000Z`;
-    const todayEnd = `${today}T23:59:59.999Z`;
-    const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd");
+    const { start: todayStart, end: todayEnd } = localDayIsoRange();
+    const yesterday = localDateKey(subDays(new Date(), 1));
+    const recentStart = localRangeStart(hintRange);
+    const recentStartIso = recentStart.toISOString();
+    const recentStartDate = localDateKey(recentStart);
 
     const [todayCheckIns, todayEvents, yesterdaySleepRecord, recentCheckIns, recentEvents, recentSleepRecords] = await Promise.all([
       db.checkIns.where("timestamp").between(todayStart, todayEnd).toArray(),
       db.events.where("timestamp").between(todayStart, todayEnd).toArray(),
       db.sleepRecords.where("date").equals(yesterday).first(),
-      db.checkIns.where("timestamp").above(format(subDays(new Date(), hintRange), "yyyy-MM-dd")).toArray(),
-      db.events.where("timestamp").above(format(subDays(new Date(), hintRange), "yyyy-MM-dd")).toArray(),
-      db.sleepRecords.where("date").above(format(subDays(new Date(), hintRange), "yyyy-MM-dd")).toArray(),
+      db.checkIns.where("timestamp").aboveOrEqual(recentStartIso).toArray(),
+      db.events.where("timestamp").aboveOrEqual(recentStartIso).toArray(),
+      db.sleepRecords.where("date").aboveOrEqual(recentStartDate).toArray(),
     ]);
 
     const hintList = generateHints({

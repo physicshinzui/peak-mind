@@ -7,6 +7,7 @@ import {
   ExperimentLog,
   CognitiveTest,
 } from "../types";
+import { localDateFromKey } from "./dates";
 
 class BrainConditionDB extends Dexie {
   checkIns!: Table<CheckIn>;
@@ -75,7 +76,7 @@ export async function getAllTimelineItems(): Promise<
     })),
     ...sleepRecords.map((s) => ({
       id: s.id,
-      timestamp: `${s.date}T00:00:00.000Z`,
+      timestamp: localDateFromKey(s.date).toISOString(),
       kind: "sleep",
       data: s as unknown,
     })),

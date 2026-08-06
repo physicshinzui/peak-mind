@@ -1,4 +1,5 @@
 import { CheckIn, LifeEvent, SleepRecord } from "../types";
+import { localDateKey } from "./dates";
 
 interface Context {
   todayCheckIns: CheckIn[];
@@ -54,9 +55,9 @@ function clarityAfter(events: LifeEvent[], type: string, hours: number, checkIns
 
 function clarityWithout(events: LifeEvent[], type: string, checkIns: CheckIn[]): number | null {
   const eventDates = new Set(
-    events.filter((e) => e.type === type).map((e) => e.timestamp.split("T")[0])
+    events.filter((e) => e.type === type).map((e) => localDateKey(e.timestamp))
   );
-  const filtered = checkIns.filter((c) => !eventDates.has(c.timestamp.split("T")[0]));
+  const filtered = checkIns.filter((c) => !eventDates.has(localDateKey(c.timestamp)));
   return filtered.length > 0 ? average(filtered.map((c) => c.scores.clarity)) : null;
 }
 
@@ -150,10 +151,10 @@ export function generateHints(context: Context): Hint[] {
   const hadExerciseToday = todayEvents.some((e) => e.type === "exercise");
   if (!hadExerciseToday && recentCheckIns.length >= 3) {
     const exerciseDays = new Set(
-      recentEvents.filter((e) => e.type === "exercise").map((e) => e.timestamp.split("T")[0])
+      recentEvents.filter((e) => e.type === "exercise").map((e) => localDateKey(e.timestamp))
     );
-    const withExercise = recentCheckIns.filter((c) => exerciseDays.has(c.timestamp.split("T")[0]));
-    const withoutExercise = recentCheckIns.filter((c) => !exerciseDays.has(c.timestamp.split("T")[0]));
+    const withExercise = recentCheckIns.filter((c) => exerciseDays.has(localDateKey(c.timestamp)));
+    const withoutExercise = recentCheckIns.filter((c) => !exerciseDays.has(localDateKey(c.timestamp)));
 
     if (withExercise.length > 0 && withoutExercise.length > 0) {
       const avgWith = average(withExercise.map((c) => c.scores.clarity));

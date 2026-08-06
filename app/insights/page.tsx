@@ -16,7 +16,8 @@ import { Navigation } from "../components/Navigation";
 import { SectionCard } from "../components/SectionCard";
 import { CheckIn, SleepRecord, LifeEvent, EventType, SCORE_LABELS, EVENT_TYPE_LABELS } from "../types";
 import { db } from "../lib/db";
-import { format, parseISO, subDays } from "date-fns";
+import { localDateFromKey, localDateKey, localRangeStart } from "../lib/dates";
+import { format, subDays } from "date-fns";
 import { ja } from "date-fns/locale";
 
 function calcSleepHours(bed: string, wake: string): number {
@@ -94,7 +95,8 @@ export default function InsightsPage() {
     load();
   }, []);
 
-  const cutoff = useMemo(() => subDays(new Date(), range), [range]);
+  const cutoff = useMemo(() => localRangeStart(range), [range]);
+  const cutoffDateKey = useMemo(() => localDateKey(cutoff), [cutoff]);
 
   const scoreKeys = useMemo(() => Object.keys(SCORE_LABELS) as (keyof typeof SCORE_LABELS)[], []);
 
@@ -108,7 +110,7 @@ export default function InsightsPage() {
     const map = new Map<string, DailyEntry>();
 
     for (let i = 0; i < range; i++) {
-      const d = format(subDays(new Date(), i), "yyyy-MM-dd");
+      const d = localDateKey(subDays(new Date(), i));
       const entry: DailyEntry = { date: d, sleep: null, sleepHours: null } as DailyEntry;
       scoreKeys.forEach((key) => {
         entry[key] = [];
@@ -117,7 +119,7 @@ export default function InsightsPage() {
     }
 
     checkIns.forEach((c) => {
-      const d = format(parseISO(c.timestamp), "yyyy-MM-dd");
+      const d = localDateKey(c.timestamp);
       const entry = map.get(d);
       if (!entry) return;
       scoreKeys.forEach((key) => {
@@ -133,9 +135,10 @@ export default function InsightsPage() {
     });
 
     return Array.from(map.values())
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .sort((a, b) => a.date.localeCompare(b.date))
       .map((d) => ({
-        label: format(parseISO(d.date), "M/d", { locale: ja }),
+        date: d.date,
+        label: format(localDateFromKey(d.date), "M/d", { locale: ja }),
         ...Object.fromEntries(scoreKeys.map((key) => [key, average(d[key]) || null])),
         sleep: d.sleep,
         sleepHours: d.sleepHours,
@@ -143,17 +146,23 @@ export default function InsightsPage() {
   }, [checkIns, sleepRecords, range, scoreKeys]);
 
   const recentCheckIns = useMemo(
-    () => checkIns.filter((c) => parseISO(c.timestamp) >= cutoff),
+    () => checkIns.filter((c) => new Date(c.timestamp) >= cutoff),
     [checkIns, cutoff]
   );
   const recentSleep = useMemo(
-    () => sleepRecords.filter((s) => parseISO(s.date) >= cutoff),
-    [sleepRecords, cutoff]
+    () => sleepRecords.filter((s) => s.date >= cutoffDateKey),
+    [sleepRecords, cutoffDateKey]
   );
 
   const stats = useMemo(() => {
     const sleepHours = recentSleep.map((s) => calcSleepHours(s.bedTime, s.wakeTime));
     const sleepQuality = recentSleep.map((s) => s.quality);
+    const sleepClarityPairs = dailyData.flatMap((day) => {
+      const clarity = (day as Record<string, unknown>).clarity;
+      return typeof day.sleepHours === "number" && typeof clarity === "number"
+        ? [{ sleepHours: day.sleepHours, clarity }]
+        : [];
+    });
 
     const scoreStats = Object.fromEntries(
       scoreKeys.map((key) => [
@@ -166,24 +175,34 @@ export default function InsightsPage() {
       avgSleep: average(sleepHours),
       avgSleepQuality: average(sleepQuality),
       ...scoreStats,
-      sleepClarity: correlation(sleepHours, recentCheckIns.map((c) => c.scores.clarity)),
+      sleepClarity: correlation(
+        sleepClarityPairs.map((pair) => pair.sleepHours),
+        sleepClarityPairs.map((pair) => pair.clarity)
+      ),
+      sleepClaritySampleSize: sleepClarityPairs.length,
     };
-  }, [recentCheckIns, recentSleep, scoreKeys]);
+  }, [recentCheckIns, recentSleep, scoreKeys, dailyData]);
 
   const customCorrelation = useMemo(() => {
-    if (recentCheckIns.length < 3 || recentSleep.length < 3) return null;
-    const x =
-      corrX === "sleepHours"
-        ? recentSleep.map((s) => calcSleepHours(s.bedTime, s.wakeTime))
-        : recentSleep.map((s) => s.quality);
-    const y = recentCheckIns.map((c) => c.scores[corrY]);
-    return correlation(x, y);
-  }, [recentCheckIns, recentSleep, corrX, corrY]);
+    const pairs = dailyData.flatMap((day) => {
+      const x = corrX === "sleepHours" ? day.sleepHours : day.sleep;
+      const y = (day as Record<string, unknown>)[corrY];
+      return typeof x === "number" && typeof y === "number" ? [{ x, y }] : [];
+    });
+    if (pairs.length < 3) return null;
+    return {
+      value: correlation(
+        pairs.map((pair) => pair.x),
+        pairs.map((pair) => pair.y)
+      ),
+      sampleSize: pairs.length,
+    };
+  }, [dailyData, corrX, corrY]);
 
   const insights = useMemo(() => {
     const list: string[] = [];
-    if (recentCheckIns.length < 5) {
-      list.push("もう少し記録を貯めると、傾向が見えてきます。");
+    if (stats.sleepClaritySampleSize < 5) {
+      list.push("同じ日に睡眠とチェックインがあるデータをもう少し貯めると、傾向が見えてきます。");
       return list;
     }
     if (Math.abs(stats.sleepClarity) > 0.3) {
@@ -195,7 +214,7 @@ export default function InsightsPage() {
       list.push("現在、強い相関は見つかっていません。実験機能で意図的に変数を変えてみるのもおすすめです。");
     }
     return list;
-  }, [stats, recentCheckIns.length]);
+  }, [stats]);
 
   const hasData = dailyData.some((d) => scoreKeys.some((key) => (d as Record<string, unknown>)[key]) || d.sleep);
 
@@ -308,7 +327,7 @@ export default function InsightsPage() {
         <details className="text-sm text-gray-500 mb-3">
           <summary className="cursor-pointer hover:text-gray-700">計算方法</summary>
           <p className="mt-2 pl-4 text-xs leading-relaxed">
-            睡眠時間・睡眠の質と各スコアの間にスピアマンの順位相関係数を計算し、絶対値が0.3を超える場合に「傾向がある」とみなしています。
+            同じ起床日の睡眠記録と、その日のチェックイン平均を組み合わせてスピアマンの順位相関係数を計算します。両方の記録がある日だけを使い、絶対値が0.3を超える場合に「傾向がある」とみなしています。
           </p>
         </details>
         <ul className="space-y-2">
@@ -347,9 +366,9 @@ export default function InsightsPage() {
           ) : (
             <p className="text-sm text-gray-700">
               {corrX === "sleepHours" ? "睡眠時間" : "睡眠の質"}と{SCORE_LABELS[corrY]}の相関係数は{" "}
-              <span className="font-bold text-blue-700">{customCorrelation.toFixed(2)}</span>
-              {" "}です。
-              {Math.abs(customCorrelation) > 0.3
+              <span className="font-bold text-blue-700">{customCorrelation.value.toFixed(2)}</span>
+              {` です（${customCorrelation.sampleSize}日分）。`}
+              {Math.abs(customCorrelation.value) > 0.3
                 ? "傾向があると言えます。"
                 : "明確な傾向は見られません。"}
             </p>
@@ -422,22 +441,22 @@ function ConditionalAverageSection({
     });
 
     const belowCheckIns = checkIns.filter((c) =>
-      belowDays.has(format(parseISO(c.timestamp), "yyyy-MM-dd"))
+      belowDays.has(localDateKey(c.timestamp))
     );
     const aboveCheckIns = checkIns.filter((c) =>
-      aboveDays.has(format(parseISO(c.timestamp), "yyyy-MM-dd"))
+      aboveDays.has(localDateKey(c.timestamp))
     );
 
     return {
       below: {
-        count: belowDays.size,
+        count: new Set(belowCheckIns.map((c) => localDateKey(c.timestamp))).size,
         clarity: average(belowCheckIns.map((c) => c.scores.clarity)),
         scores: Object.fromEntries(
           scoreKeys.map((key) => [key, average(belowCheckIns.map((c) => c.scores[key]))])
         ),
       },
       above: {
-        count: aboveDays.size,
+        count: new Set(aboveCheckIns.map((c) => localDateKey(c.timestamp))).size,
         clarity: average(aboveCheckIns.map((c) => c.scores.clarity)),
         scores: Object.fromEntries(
           scoreKeys.map((key) => [key, average(aboveCheckIns.map((c) => c.scores[key]))])
@@ -547,26 +566,26 @@ function EventConditionalSection({
 
   const { yes, no } = useMemo(() => {
     const yesDays = new Set(
-      events.filter((e) => e.type === eventType).map((e) => e.timestamp.split("T")[0])
+      events.filter((e) => e.type === eventType).map((e) => localDateKey(e.timestamp))
     );
 
     const yesCheckIns = checkIns.filter((c) =>
-      yesDays.has(format(parseISO(c.timestamp), "yyyy-MM-dd"))
+      yesDays.has(localDateKey(c.timestamp))
     );
     const noCheckIns = checkIns.filter(
-      (c) => !yesDays.has(format(parseISO(c.timestamp), "yyyy-MM-dd"))
+      (c) => !yesDays.has(localDateKey(c.timestamp))
     );
 
     return {
       yes: {
-        count: yesDays.size,
+        count: new Set(yesCheckIns.map((c) => localDateKey(c.timestamp))).size,
         clarity: average(yesCheckIns.map((c) => c.scores.clarity)),
         scores: Object.fromEntries(
           scoreKeys.map((key) => [key, average(yesCheckIns.map((c) => c.scores[key]))])
         ),
       },
       no: {
-        count: new Set(checkIns.map((c) => c.timestamp.split("T")[0])).size - yesDays.size,
+        count: new Set(noCheckIns.map((c) => localDateKey(c.timestamp))).size,
         clarity: average(noCheckIns.map((c) => c.scores.clarity)),
         scores: Object.fromEntries(
           scoreKeys.map((key) => [key, average(noCheckIns.map((c) => c.scores[key]))])
@@ -675,14 +694,14 @@ function CombinationAnalysisSection({
 
     const eventDatesByType = new Map<EventType, Set<string>>();
     events.forEach((e) => {
-      const date = e.timestamp.split("T")[0];
+      const date = localDateKey(e.timestamp);
       if (!eventDatesByType.has(e.type)) eventDatesByType.set(e.type, new Set());
       eventDatesByType.get(e.type)!.add(date);
     });
 
     const checkInsByDate = new Map<string, CheckIn[]>();
     checkIns.forEach((c) => {
-      const date = c.timestamp.split("T")[0];
+      const date = localDateKey(c.timestamp);
       if (!checkInsByDate.has(date)) checkInsByDate.set(date, []);
       checkInsByDate.get(date)!.push(c);
     });
